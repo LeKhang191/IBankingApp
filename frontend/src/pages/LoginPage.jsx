@@ -31,7 +31,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-semibold text-primary-dark">iBanking</h1>
-          <p className="mt-1 text-sm text-ink/60">Đóng học phí trực tuyến cho sinh viên TDTU</p>
+          <p className="mt-1 text-sm text-ink/60">Đóng học phí trực tuyến for TDTUers</p>
         </div>
 
         <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-white p-6 shadow-card">

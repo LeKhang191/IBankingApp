@@ -16,7 +16,6 @@ export default function PaymentConfirmPage() {
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Nếu người dùng vào thẳng URL này mà chưa tra cứu MSSV, đưa họ về bước 1
   if (!flow.tuition) {
     return <Navigate to="/thanh-toan" replace />
   }

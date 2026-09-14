@@ -84,7 +84,7 @@ export default function OtpPage() {
 
           {flow.devOtp && (
             <p className="mt-3 rounded-lg bg-primary-light px-3 py-2 text-xs text-primary-dark">
-              Chế độ demo (chưa nối email thật) — mã OTP của bạn là <strong>{flow.devOtp}</strong>
+              DEMO — mã OTP của bạn là <strong>{flow.devOtp}</strong>
             </p>
           )}
 

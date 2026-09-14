@@ -8,9 +8,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Khôi phục phiên đăng nhập khi tải lại trang (dữ liệu chỉ tồn tại trong
-  // bộ nhớ của mockApi nên sau khi refresh trang, phiên demo sẽ mất - đây
-  // là hành vi mong đợi cho một mock, không phải bug).
   useEffect(() => {
     setIsLoading(false)
   }, [])

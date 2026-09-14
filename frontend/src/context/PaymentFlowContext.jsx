@@ -3,12 +3,12 @@ import React, { createContext, useContext, useState, useCallback } from 'react'
 const PaymentFlowContext = createContext(null)
 
 const emptyFlow = {
-  tuition: null, // { mssv, studentName, amount, status }
+  tuition: null, // mssv, studentName, amount, status 
   transactionId: null,
   otpSentTo: null,
   otpExpiresAt: null,
-  devOtp: null, // chỉ dùng để demo khi chưa có email thật
-  result: null // kết quả cuối cùng sau khi verifyOtp thành công/thất bại
+  devOtp: null, 
+  result: null 
 }
 
 export function PaymentFlowProvider({ children }) {
