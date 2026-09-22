@@ -1,52 +1,50 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import * as api from '../services/mockApi'
+import { createContext, useContext, useState, useEffect } from 'react';
+import authService from '../services/authService'; 
 
-const AuthContext = createContext(null)
+const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(null)
-  const [user, setUser] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState(null);
+  
+  const [isLoading, setIsLoading] = useState(true); 
 
   useEffect(() => {
-    setIsLoading(false)
-  }, [])
+    const fetchMe = async () => {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        try {
+          const userData = await authService.getMe();
+          setUser(userData);
+        } catch (error) {
+          localStorage.removeItem('access_token');
+        }
+      }
+      setIsLoading(false); 
+    };
+    fetchMe();
+  }, []);
 
-  const login = useCallback(async (username, password) => {
-    const { token: newToken, user: loggedInUser } = await api.login(username, password)
-    setToken(newToken)
-    setUser(loggedInUser)
-    return loggedInUser
-  }, [])
+  const login = async (username, password) => {
+    const data = await authService.login(username, password);
+    localStorage.setItem('access_token', data.token);
+    setUser(data.user);
+  };
 
-  const logout = useCallback(async () => {
-    if (token) await api.logout(token)
-    setToken(null)
-    setUser(null)
-  }, [token])
-
-  const refreshUser = useCallback(async () => {
-    if (!token) return
-    const fresh = await api.getCurrentUser(token)
-    setUser(fresh)
-    return fresh
-  }, [token])
-
-  const value = {
-    token,
-    user,
-    isAuthenticated: Boolean(token && user),
-    isLoading,
-    login,
-    logout,
-    refreshUser
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  const logout = async () => {
+      try {
+        await authService.logout(); 
+      } catch (error) {
+        console.error("API logout lỗi:", error);
+      } finally {
+        localStorage.removeItem('access_token');
+        
+        setUser(null); 
+      }
+    };
+  return (
+  <AuthContext.Provider value={{ user, login, logout, isLoading }}>      {!isLoading && children}
+    </AuthContext.Provider>
+  );
 }
 
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth phải được dùng bên trong <AuthProvider>')
-  return ctx
-}
+export const useAuth = () => useContext(AuthContext);

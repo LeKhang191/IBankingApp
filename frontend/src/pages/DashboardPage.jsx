@@ -2,26 +2,22 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/AppLayout'
-import * as api from '../services/mockApi'
-import { formatVnd } from '../services/mockApi'
+
+// Bỏ import mockApi đi và mang hàm formatVnd ra đây dùng tạm
+export const formatVnd = (amount) => {
+  return new Intl.NumberFormat('vi-VN').format(amount) + ' đ'
+}
 
 export default function DashboardPage() {
-  const { user, token } = useAuth()
+  const { user } = useAuth() // Bỏ biến token đi vì AuthContext không export biến này
   const [recentTransactions, setRecentTransactions] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false) // Đổi thành false vì không cần chờ tải
 
   useEffect(() => {
-    let ignore = false
-    api.getHistory(token).then((history) => {
-      if (!ignore) {
-        setRecentTransactions(history.slice(0, 3))
-        setIsLoading(false)
-      }
-    })
-    return () => {
-      ignore = true
-    }
-  }, [token])
+    // Tạm thời set mảng rỗng. 
+    // Sau này bạn build xong payment-service thì sẽ gọi API thật ở đây!
+    setRecentTransactions([])
+  }, [])
 
   return (
     <AppLayout>

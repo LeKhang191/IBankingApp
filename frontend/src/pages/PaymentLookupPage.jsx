@@ -4,8 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { usePaymentFlow } from '../context/PaymentFlowContext'
 import AppLayout from '../components/AppLayout'
 import StepIndicator from '../components/StepIndicator'
-import * as api from '../services/mockApi'
 import { formatVnd } from '../services/mockApi'
+import tuitionService from '../services/tuitionService'
 
 export default function PaymentLookupPage() {
   const { token } = useAuth()
@@ -17,21 +17,27 @@ export default function PaymentLookupPage() {
   const [isSearching, setIsSearching] = useState(false)
   const [result, setResult] = useState(null)
 
-  async function handleSearch(e) {
-    e.preventDefault()
-    setError('')
-    setResult(null)
-    if (!mssv.trim()) return
-    setIsSearching(true)
-    try {
-      const tuition = await api.lookupTuition(token, mssv.trim())
+async function handleSearch(e) {
+  e.preventDefault()
+  setError('')
+  setResult(null)
+  if (!mssv.trim()) return
+  setIsSearching(true)
+  try {
+    const tuition = await tuitionService.lookupTuition(mssv.trim())
+    
+    if (tuition.isPaid) {
+      setError("Sinh viên này đã hoàn thành học phí học kỳ này.");
+    } else {
       setResult(tuition)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setIsSearching(false)
     }
+  } catch (err) {
+    console.error("LỖI THỰC SỰ ĐÂY NÈ:", err); // <--- BẠN THÊM DÒNG NÀY VÀO
+    setError(err.response?.data?.detail || "Không tìm thấy thông tin học phí.")
+  } finally {
+    setIsSearching(false)
   }
+}
 
   function handleContinue() {
     setTuition(result)

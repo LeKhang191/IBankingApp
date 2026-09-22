@@ -3,9 +3,13 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function ProtectedRoute({ children }) {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { user } = useAuth()
+  
+  const token = localStorage.getItem('access_token')
 
-  if (isLoading) return null
-  if (!isAuthenticated) return <Navigate to="/dang-nhap" replace />
+  if (!user && !token) {
+    return <Navigate to="/dang-nhap" replace />
+  }
+
   return children
 }

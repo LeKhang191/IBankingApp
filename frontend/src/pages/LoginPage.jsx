@@ -16,11 +16,14 @@ export default function LoginPage() {
     setError('')
     setIsSubmitting(true)
     try {
-      await login(username, password)
-      const redirectTo = location.state?.from || '/'
-      navigate(redirectTo, { replace: true })
+      await login(username, password);
+      console.log("✅ Đã có Token! Chuẩn bị bay về trang chủ..."); // Thêm dòng này
+      
+      navigate('/', { replace: true }); // Sửa cứng thành '/' thay vì redirectTo
+      
     } catch (err) {
-      setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.')
+      console.log("❌ Lỗi ở khối catch:", err); // Thêm dòng này
+      setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false)
     }
