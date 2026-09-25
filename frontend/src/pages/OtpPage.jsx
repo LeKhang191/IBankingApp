@@ -37,19 +37,24 @@ export default function OtpPage() {
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
   const seconds = String(secondsLeft % 60).padStart(2, '0')
 
-  async function handleVerify(e) {
+async function handleVerify(e) {
     e.preventDefault()
     setError('')
     setIsVerifying(true)
     try {
       const result = await api.verifyOtp(token, flow.transactionId, otp)
+      
+      await tuitionService.payTuition(flow.tuition.mssv)
+
       setResult(result)
       await refreshUser()
       navigate('/thanh-toan/ket-qua')
     } catch (err) {
-      setError(err.message)
+      const errorMsg = err.response?.data?.detail || err.message || "Xác thực thất bại."
+      setError(errorMsg)
+      
       if (err.code === 'OTP_EXPIRED' || err.code === 'OTP_MAX_ATTEMPTS') {
-        setResult({ status: 'failed', reason: err.message })
+        setResult({ status: 'failed', reason: errorMsg })
         navigate('/thanh-toan/ket-qua')
       }
     } finally {

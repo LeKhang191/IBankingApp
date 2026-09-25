@@ -25,6 +25,12 @@ const tuitionService = {
       amount: data.tuition_fee,
       isPaid: data.is_paid
     };
+  },
+  payTuition: async (mssv) => {
+    const PAYMENT_API_URL = import.meta.env.VITE_PAYMENT_API_URL || 'http://localhost:8003';
+    
+    const response = await tuitionClient.post(`/api/tuitions/${mssv}/pay`);
+    return response.data; 
   }
 };
 

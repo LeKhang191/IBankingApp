@@ -21,7 +21,7 @@ def seed_demo_users(db: Session) -> None:
             name="Nguyễn Văn An",
             phone="0901234567",
             email="an.nguyen@student.tdtu.edu.vn",
-            balance=12_000_000,
+            balance=15_000_000,
         ),
         User(
             id="u2",

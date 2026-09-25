@@ -27,6 +27,21 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 @router.post("/logout")
 def logout(current_user: User = Depends(get_current_user)):
-    # JWT là stateless nên "logout" thật sự cần blacklist token (vd lưu trong Redis).
-    # Với quy mô đồ án, có thể để frontend tự xoá token khỏi localStorage là đủ.
     return {"success": True}
+
+from pydantic import BaseModel
+
+class DeductRequest(BaseModel):
+    amount: float
+
+@router.post("/deduct")
+def deduct_balance(payload: DeductRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == current_user.id).with_for_update().first()
+    
+    if user.balance < payload.amount:
+        raise HTTPException(status_code=400, detail="Số dư không đủ để thực hiện giao dịch.")
+    
+    user.balance -= payload.amount
+    db.commit()
+    
+    return {"success": True, "new_balance": user.balance}

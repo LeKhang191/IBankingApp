@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePaymentFlow } from '../context/PaymentFlowContext'
 import AppLayout from '../components/AppLayout'
 import StepIndicator from '../components/StepIndicator'
-import * as api from '../services/mockApi'
+import tuitionService from '../services/tuitionService'
 import { formatVnd } from '../services/mockApi'
 
 export default function PaymentConfirmPage() {
@@ -29,11 +29,14 @@ export default function PaymentConfirmPage() {
     setError('')
     setIsSubmitting(true)
     try {
-      const res = await api.createPaymentRequest(token, { mssv: tuition.mssv })
-      setPaymentRequest(res)
-      navigate('/thanh-toan/otp')
+      const res = await tuitionService.payTuition(tuition.mssv)
+      
+      if(res.success) {
+          navigate('/thanh-toan/thanh-cong') 
+      }
+      
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || "Giao dịch thất bại, vui lòng thử lại.")
     } finally {
       setIsSubmitting(false)
     }
