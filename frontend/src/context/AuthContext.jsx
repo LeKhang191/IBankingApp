@@ -5,23 +5,28 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  
   const [isLoading, setIsLoading] = useState(true); 
 
-  useEffect(() => {
-    const fetchMe = async () => {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        try {
-          const userData = await authService.getMe();
-          setUser(userData);
-        } catch (error) {
-          localStorage.removeItem('access_token');
-        }
+  const refreshUser = async () => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      try {
+        const userData = await authService.getMe();
+        setUser(userData);
+        return userData;
+      } catch (error) {
+        localStorage.removeItem('access_token');
+        setUser(null);
       }
-      setIsLoading(false); 
+    }
+  };
+
+  useEffect(() => {
+    const initAuth = async () => {
+      await refreshUser();
+      setIsLoading(false);
     };
-    fetchMe();
+    initAuth();
   }, []);
 
   const login = async (username, password) => {
@@ -31,18 +36,19 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-      try {
-        await authService.logout(); 
-      } catch (error) {
-        console.error("API logout lỗi:", error);
-      } finally {
-        localStorage.removeItem('access_token');
-        
-        setUser(null); 
-      }
-    };
+    try {
+      await authService.logout(); 
+    } catch (error) {
+      console.error("API logout lỗi:", error);
+    } finally {
+      localStorage.removeItem('access_token');
+      setUser(null); 
+    }
+  };
+
   return (
-  <AuthContext.Provider value={{ user, login, logout, isLoading }}>      {!isLoading && children}
+    <AuthContext.Provider value={{ user, login, logout, refreshUser, isLoading }}>
+      {!isLoading && children}
     </AuthContext.Provider>
   );
 }

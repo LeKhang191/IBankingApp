@@ -5,11 +5,15 @@ import { usePaymentFlow } from '../context/PaymentFlowContext'
 import AppLayout from '../components/AppLayout'
 import StepIndicator from '../components/StepIndicator'
 import tuitionService from '../services/tuitionService'
-import { formatVnd } from '../services/mockApi'
+
+// Hàm format tiền tệ
+const formatVnd = (amount) => {
+  return new Intl.NumberFormat('vi-VN').format(amount) + ' đ'
+}
 
 export default function PaymentConfirmPage() {
-  const { token, user } = useAuth()
-  const { flow, setPaymentRequest } = usePaymentFlow()
+  const { user, refreshUser } = useAuth()
+  const { flow, setResult } = usePaymentFlow()
   const navigate = useNavigate()
 
   const [agreed, setAgreed] = useState(false)
@@ -31,10 +35,24 @@ export default function PaymentConfirmPage() {
     try {
       const res = await tuitionService.payTuition(tuition.mssv)
       
-      if(res.success) {
-          navigate('/thanh-toan/thanh-cong') 
+      if (res.success) {
+        if (refreshUser) {
+          await refreshUser()
+        }
+
+        setResult({
+          status: 'success',
+          transactionId: res.transaction_id || ('TXN' + Date.now()),
+          mssv: tuition.mssv,
+          studentName: tuition.studentName,
+          amount: tuition.amount,
+          createdAt: new Date().toISOString()
+        })
+
+        navigate('/thanh-toan/ket-qua')
+      } else {
+        setError(res.message || "Giao dịch không thành công.")
       }
-      
     } catch (err) {
       setError(err.response?.data?.detail || "Giao dịch thất bại, vui lòng thử lại.")
     } finally {

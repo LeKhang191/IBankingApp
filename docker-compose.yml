@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   postgres:
@@ -48,6 +47,17 @@ services:
       depends_on:
         postgres:
           condition: service_healthy
+
+  notification-service:
+      build: ./backend/notification-service
+      container_name: ibankingapp-notification-service
+      ports:
+        - "8004:8003"
+      environment:
+        - SMTP_USER=${SMTP_USER}
+        - SMTP_PASSWORD=${SMTP_PASSWORD}
+      networks:
+        - default
 
   frontend:
     build: 

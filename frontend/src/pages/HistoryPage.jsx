@@ -1,20 +1,39 @@
 import React, { useEffect, useState } from 'react'
-import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/AppLayout'
-import * as api from '../services/mockApi'
-import { formatVnd } from '../services/mockApi'
+import tuitionService from '../services/tuitionService'
+
+const formatVnd = (amount) => {
+  return new Intl.NumberFormat('vi-VN').format(amount) + ' đ'
+}
 
 export default function HistoryPage() {
-  const { token } = useAuth()
   const [transactions, setTransactions] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    api.getHistory(token).then((data) => {
-      setTransactions(data)
-      setIsLoading(false)
-    })
-  }, [token])
+    let ignore = false
+
+    async function fetchHistory() {
+      try {
+        const data = await tuitionService.getHistory()
+        if (!ignore) {
+          setTransactions(data || [])
+        }
+      } catch (error) {
+        console.error('Lỗi lấy lịch sử giao dịch:', error)
+      } finally {
+        if (!ignore) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    fetchHistory()
+
+    return () => {
+      ignore = true
+    }
+  }, [])
 
   return (
     <AppLayout>
@@ -42,13 +61,15 @@ export default function HistoryPage() {
             <tbody>
               {transactions.map((txn) => (
                 <tr key={txn.id} className="border-b border-border last:border-0">
-                  <td className="px-5 py-3 text-ink/70">{txn.id.split('_')[1]}</td>
+                  <td className="px-5 py-3 font-mono text-xs text-ink/70">{txn.id}</td>
                   <td className="px-5 py-3">{txn.mssv}</td>
                   <td className="px-5 py-3">{txn.studentName}</td>
                   <td className="px-5 py-3 text-ink/60">
-                    {new Date(txn.createdAt).toLocaleString('vi-VN')}
+                    {txn.createdAt ? new Date(txn.createdAt).toLocaleString('vi-VN') : '—'}
                   </td>
-                  <td className="money px-5 py-3 text-right font-medium">{formatVnd(txn.amount)}</td>
+                  <td className="money px-5 py-3 text-right font-medium text-danger">
+                    -{formatVnd(txn.amount)}
+                  </td>
                 </tr>
               ))}
             </tbody>

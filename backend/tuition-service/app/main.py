@@ -30,6 +30,11 @@ def on_startup():
             ]
             db.add_all(demo_tuitions)
             db.commit()
+        else:
+            sv_test = db.query(Tuition).filter(Tuition.student_code == "52000001").first()
+            if sv_test:
+                sv_test.is_paid = False
+                db.commit()
     finally:
         db.close()
 
