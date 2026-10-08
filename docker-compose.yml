@@ -1,7 +1,6 @@
-
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     ports:
       - "5432:5432"
     environment:
@@ -13,6 +12,8 @@ services:
       interval: 3s
       timeout: 3s
       retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   auth-service:
     build: 
@@ -71,3 +72,6 @@ services:
       - /app/node_modules
     depends_on:
       - auth-service
+
+volumes:
+  pgdata:

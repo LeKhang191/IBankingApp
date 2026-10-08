@@ -18,12 +18,13 @@ export function PaymentFlowProvider({ children }) {
     setFlow((prev) => ({ ...prev, tuition }))
   }, [])
 
-  const setPaymentRequest = useCallback(({ transactionId, otpSentTo, expiresAt, __devOtp }) => {
+  const setPaymentRequest = useCallback(({ transactionId, tuition, otpSentTo, expiresAt, otpExpiresAt, __devOtp }) => {
     setFlow((prev) => ({
       ...prev,
       transactionId,
+      tuition: tuition || prev.tuition,
       otpSentTo,
-      otpExpiresAt: expiresAt,
+      otpExpiresAt: otpExpiresAt || expiresAt || (Date.now() + 5 * 60 * 1000),
       devOtp: __devOtp ?? null
     }))
   }, [])

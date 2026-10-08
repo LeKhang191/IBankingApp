@@ -15,9 +15,13 @@ export default function HistoryPage() {
 
     async function fetchHistory() {
       try {
-        const data = await tuitionService.getHistory()
+        const res = await tuitionService.getHistory()
         if (!ignore) {
-          setTransactions(data || [])
+          // Trích xuất đúng mảng transactions từ object backend trả về
+          const list = Array.isArray(res) 
+            ? res 
+            : (res?.transactions && Array.isArray(res.transactions) ? res.transactions : [])
+          setTransactions(list)
         }
       } catch (error) {
         console.error('Lỗi lấy lịch sử giao dịch:', error)
@@ -35,6 +39,8 @@ export default function HistoryPage() {
     }
   }, [])
 
+  const safeTransactions = Array.isArray(transactions) ? transactions : []
+
   return (
     <AppLayout>
       <h1 className="mb-1 text-lg font-semibold text-ink">Lịch sử giao dịch</h1>
@@ -43,7 +49,7 @@ export default function HistoryPage() {
       <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-card">
         {isLoading ? (
           <p className="px-5 py-6 text-sm text-ink/50">Đang tải...</p>
-        ) : transactions.length === 0 ? (
+        ) : safeTransactions.length === 0 ? (
           <div className="px-5 py-12 text-center">
             <p className="text-sm text-ink/50">Bạn chưa thực hiện giao dịch nào.</p>
           </div>
@@ -59,13 +65,13 @@ export default function HistoryPage() {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((txn) => (
+              {safeTransactions.map((txn) => (
                 <tr key={txn.id} className="border-b border-border last:border-0">
                   <td className="px-5 py-3 font-mono text-xs text-ink/70">{txn.id}</td>
                   <td className="px-5 py-3">{txn.mssv}</td>
-                  <td className="px-5 py-3">{txn.studentName}</td>
+                  <td className="px-5 py-3">{txn.studentName || txn.student_name}</td>
                   <td className="px-5 py-3 text-ink/60">
-                    {txn.createdAt ? new Date(txn.createdAt).toLocaleString('vi-VN') : '—'}
+                    {txn.createdAt || txn.created_at ? new Date(txn.createdAt || txn.created_at).toLocaleString('vi-VN') : '—'}
                   </td>
                   <td className="money px-5 py-3 text-right font-medium text-danger">
                     -{formatVnd(txn.amount)}

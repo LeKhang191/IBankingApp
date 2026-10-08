@@ -35,19 +35,22 @@ def get_me(current_user: User = Depends(get_current_user)):
 def logout(current_user: User = Depends(get_current_user)):
     return {"success": True}
 
-
 @router.post("/deduct")
 def deduct_balance(payload: DeductRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == current_user.id).with_for_update().first()
     
-    if not user:
-        raise HTTPException(status_code=404, detail="Không tìm thấy thông tin người dùng.")
-
     if user.balance < payload.amount:
-        raise HTTPException(status_code=400, detail="Số dư không đủ để thực hiện giao dịch.")
+        raise HTTPException(status_code=400, detail="Số dư khả dụng không đủ để thực hiện giao dịch.")
     
     user.balance -= payload.amount
     db.commit()
     db.refresh(user)
-    
-    return {"success": True, "new_balance": float(user.balance)}
+    return {"success": True, "remaining_balance": user.balance}
+
+@router.post("/refund")
+def refund_balance(payload: DeductRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == current_user.id).with_for_update().first()
+    user.balance += payload.amount
+    db.commit()
+    db.refresh(user)
+    return {"success": True, "balance": user.balance}

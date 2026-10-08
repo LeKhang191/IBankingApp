@@ -17,15 +17,15 @@ export default function LoginPage() {
     setIsSubmitting(true)
     try {
       await login(username, password);
-      console.log("✅ Đã có Token! Chuẩn bị bay về trang chủ..."); // Thêm dòng này
+      console.log("✅ Đã có Token! Chuẩn bị bay về trang chủ..."); 
       
-      navigate('/', { replace: true }); // Sửa cứng thành '/' thay vì redirectTo
+      navigate('/', { replace: true }); 
       
     } catch (err) {
-      console.log("❌ Lỗi ở khối catch:", err); // Thêm dòng này
+      console.log("❌ Lỗi ở khối catch:", err); 
       setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false) 
     }
   }
 

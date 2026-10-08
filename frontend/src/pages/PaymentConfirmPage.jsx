@@ -5,6 +5,7 @@ import { usePaymentFlow } from '../context/PaymentFlowContext'
 import AppLayout from '../components/AppLayout'
 import StepIndicator from '../components/StepIndicator'
 import tuitionService from '../services/tuitionService'
+import axios from 'axios'
 
 // Hàm format tiền tệ
 const formatVnd = (amount) => {
@@ -12,8 +13,8 @@ const formatVnd = (amount) => {
 }
 
 export default function PaymentConfirmPage() {
-  const { user, refreshUser } = useAuth()
-  const { flow, setResult } = usePaymentFlow()
+  const { user, token, accessToken, refreshUser } = useAuth()
+  const { flow, setPaymentRequest, setResult } = usePaymentFlow()
   const navigate = useNavigate()
 
   const [agreed, setAgreed] = useState(false)
@@ -29,29 +30,36 @@ export default function PaymentConfirmPage() {
   const hasEnoughBalance = balance >= tuition.amount
   const canConfirm = agreed && hasEnoughBalance
 
-  async function handleConfirm() {
+async function handleConfirm() {
     setError('')
     setIsSubmitting(true)
     try {
-      const res = await tuitionService.payTuition(tuition.mssv)
-      
-      if (res.success) {
-        if (refreshUser) {
-          await refreshUser()
+      const tokenStr = localStorage.getItem('access_token') || localStorage.getItem('token') || ''
+      const cleanToken = tokenStr.replace(/^Bearer\s+/i, '').trim()
+
+      const res = await axios.post(
+        'http://localhost:8003/api/payments/init',
+        { mssv: tuition.mssv },
+        {
+          headers: {
+            Authorization: `Bearer ${cleanToken}`
+          }
+        }
+      )
+
+      if (res.data.success) {
+        if (setPaymentRequest) {
+          setPaymentRequest({
+            transactionId: res.data.transaction_id,
+            tuition: tuition,
+            otpSentTo: user?.email,
+            otpExpiresAt: Date.now() + 5 * 60 * 1000 
+          })
         }
 
-        setResult({
-          status: 'success',
-          transactionId: res.transaction_id || ('TXN' + Date.now()),
-          mssv: tuition.mssv,
-          studentName: tuition.studentName,
-          amount: tuition.amount,
-          createdAt: new Date().toISOString()
-        })
-
-        navigate('/thanh-toan/ket-qua')
+        navigate('/thanh-toan/otp')
       } else {
-        setError(res.message || "Giao dịch không thành công.")
+        setError(res.data.message || "Không thể khởi tạo giao dịch.")
       }
     } catch (err) {
       setError(err.response?.data?.detail || "Giao dịch thất bại, vui lòng thử lại.")
@@ -121,7 +129,7 @@ export default function PaymentConfirmPage() {
               disabled={!canConfirm || isSubmitting}
               className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSubmitting ? 'Đang xử lý...' : 'Xác nhận giao dịch'}
+              {isSubmitting ? 'Đang gửi OTP...' : 'Nhận mã OTP'}
             </button>
           </div>
         </section>

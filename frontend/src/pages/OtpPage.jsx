@@ -6,6 +6,7 @@ import AppLayout from '../components/AppLayout'
 import StepIndicator from '../components/StepIndicator'
 import OtpInput from '../components/OtpInput'
 import * as api from '../services/mockApi'
+import axios from 'axios'
 
 export default function OtpPage() {
   const { token, refreshUser } = useAuth()
@@ -42,35 +43,64 @@ async function handleVerify(e) {
     setError('')
     setIsVerifying(true)
     try {
-      const result = await api.verifyOtp(token, flow.transactionId, otp)
-      
-      await tuitionService.payTuition(flow.tuition.mssv)
+      const rawToken = token || localStorage.getItem('access_token') || localStorage.getItem('token') || ''
+      const cleanToken = rawToken.replace(/^Bearer\s+/i, '').trim()
 
-      setResult(result)
-      await refreshUser()
+      const res = await axios.post(
+        'http://localhost:8003/api/payments/verify-otp',
+        {
+          transaction_id: (flow.transactionId || flow.transaction_id || '').trim(),
+          otp: String(otp).trim()
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${cleanToken}`
+          }
+        }
+      )
+
+      setResult(res.data.transaction)
+      if (refreshUser) await refreshUser()
+
       navigate('/thanh-toan/ket-qua')
     } catch (err) {
       const errorMsg = err.response?.data?.detail || err.message || "Xác thực thất bại."
       setError(errorMsg)
-      
-      if (err.code === 'OTP_EXPIRED' || err.code === 'OTP_MAX_ATTEMPTS') {
-        setResult({ status: 'failed', reason: errorMsg })
-        navigate('/thanh-toan/ket-qua')
-      }
     } finally {
       setIsVerifying(false)
     }
   }
 
-  async function handleResend() {
+async function handleResend() {
     setError('')
     setIsResending(true)
     try {
-      const res = await api.resendOtp(token, flow.transactionId)
-      setPaymentRequest({ ...res, otpSentTo: flow.otpSentTo })
-      setOtp('')
+      const rawToken = token || localStorage.getItem('access_token') || localStorage.getItem('token') || ''
+      const cleanToken = rawToken.replace(/^Bearer\s+/i, '').trim()
+
+      const res = await axios.post(
+        'http://localhost:8003/api/payments/init',
+        { mssv: flow.tuition.mssv },
+        {
+          headers: {
+            Authorization: `Bearer ${cleanToken}`
+          }
+        }
+      )
+
+      if (res.data.success) {
+        setPaymentRequest({
+          transactionId: res.data.transaction_id,
+          tuition: flow.tuition,
+          otpSentTo: flow.otpSentTo,
+          otpExpiresAt: Date.now() + 5 * 60 * 1000
+        })
+        setOtp('')
+      } else {
+        setError(res.data.message || 'Không thể gửi lại mã.')
+      }
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.detail || err.message || 'Gửi lại mã thất bại.')
     } finally {
       setIsResending(false)
     }
