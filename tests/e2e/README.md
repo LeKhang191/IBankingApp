@@ -25,3 +25,7 @@ docker compose -f docker-compose.e2e.yml down -v
 **Do not use `down -v` without `-f docker-compose.e2e.yml`.** Existing production data is not touched by the runner but incorrect Docker project/volumes can still be dangerous. A failed E2E test must be diagnosed with `docker compose -f docker-compose.e2e.yml logs --tail=120`.
 
 Caveat: no E2E checks have been executed in a Docker environment by this delivery. The tests must pass on your computer to establish runtime correctness.
+
+## One-command PowerShell wrapper
+
+From the repository root, run `.\tests\e2e\run-e2e.ps1 -Build`. The wrapper starts only the isolated E2E stack and runs the `e2e-tests` service. It does **not** remove volumes or affect the ordinary Compose project.

@@ -39,14 +39,21 @@ IBankingApp-microservice/
 │   ├── use-case.puml
 │   ├── microservices-architecture.puml
 │   └── PROJECT_STRUCTURE.md
-├── scripts/
+├── scripts/                         # Operational legacy shortcuts
 │   ├── test-workflow.ps1
 │   └── README.md
 ├── tests/
 │   ├── README.md
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/                         # HTTP + email sink + concurrency
+│   ├── automation/                  # Basic business automation
+│   │   ├── test-workflow.ps1        # Saga / Outbox smoke test
+│   │   ├── test-concurrency.ps1     # Opt-in PostgreSQL concurrency
+│   │   └── test_postgres_concurrency.py
+│   └── e2e/                         # Real HTTP + Mailpit
+│       ├── test_http_workflow.py
+│       ├── requirements.txt
+│       ├── run-e2e.ps1
+│       └── README.md
+├── pytest.ini                       # Defaults to concurrency tests
 └── test-workflow.bat
 ```
 

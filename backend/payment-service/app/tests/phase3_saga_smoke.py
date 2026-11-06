@@ -6,6 +6,7 @@ Run inside the payment-service container after applying the Phase 3 SQL migratio
 
 import asyncio
 import uuid
+from uuid import uuid4
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -51,7 +52,7 @@ def create_transaction(transaction_id: str):
             mssv="52999998",
             student_name="PHASE 3 SMOKE TEST",
             amount=Decimal("100.00"),
-            user_id="phase3-smoke-user",
+            user_id=f"phase3-smoke-{uuid4().hex[:12]}", 
             user_email="phase3-smoke@example.invalid",
             otp_hash="0" * 64,
             otp_expires_at=datetime.utcnow() + timedelta(minutes=5),

@@ -6,7 +6,7 @@
 - [ ] Login (401 wrong password, 200 correct), balance and tuition lookup.
 - [ ] OTP arrives by real configured email, invalid/expired/replayed OTP rejected. Never expose OTP in API response.
 - [ ] Correct OTP: one debit, tuition paid, payment history and receipt in email.
-- [ ] `pytest tests/unit -q` passes.
+- [ ] `tests/automation/test-workflow.ps1` passes and the E2E suite passes.
 - [ ] Isolated real HTTP E2E suite passes, including concurrent debit, concurrent tuition settlement, two-user full Saga settlement/compensation and idempotency.
 - [ ] In logs, request ID follows gateway -> payment -> auth/tuition/notification; worker has own ID for jobs.
 - [ ] Explain Saga retries/compensation and at-least-once outbox/email semantics.

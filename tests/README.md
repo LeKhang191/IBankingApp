@@ -1,12 +1,38 @@
-# Testing strategy
+# Kiểm thử iBanking — đơn giản, tập trung nghiệp vụ
 
-1. **Offline unit/schema tests:** `python -m pytest tests/unit -q` requires `pytest` and `sqlalchemy`; validates independent service-owned schema constraints and gateway routes. No database changes.
-2. **Real PostgreSQL concurrency test (opt in):** set `TEST_DATABASE_URL` to a **disposable PostgreSQL test database**, then `python -m pytest tests/integration -q`. Tests use separate disposable tables, verify two concurrent debits cannot overdraw and two tuition settlements cannot both win. This validates locking strategy, **not** the end-to-end HTTP Saga.
-3. **Existing Saga/outbox smoke (with Docker):** `docker compose exec payment-service python -m app.tests.phase3_saga_smoke`. HTTP calls to other services are mocked; it writes and cleans up test transactions in payment_db.
-4. **Windows deployment smoke:** `test-workflow.bat` checks Compose services, health endpoints and DB state.
-5. **Manual E2E:** use a disposable demo account + SMTP sandbox mailbox to verify login -> tuition lookup -> OTP -> payment -> balance, paid status, history and email. Never run destructive demos against production.
+Hai thư mục chính:
 
-**Important:** do not claim automated coverage proves actual concurrency across microservices. Full concurrency / failure-injection E2E tests and automated mail delivery checks are additional work before a genuine 10/10-level verification.
+- `automation/`: script test nghiệp vụ thanh toán/Saga + Outbox và kiểm thử hai giao dịch đồng thời với PostgreSQL.
+- `e2e/`: test HTTP thật (OTP, thanh toán, lịch sử, email Mailpit, Saga/concurrency) chạy trong Docker E2E cách ly.
 
-## E2E via actual services
-See [`e2e/README.md`](e2e/README.md) for **separate disposable Compose project** and Mailpit instructions. `pytest tests/unit` never touches a database, and `pytest tests/integration` needs TEST_DATABASE_URL; `pytest tests/e2e` will skip unless the explicit disposable runner sentinel is present.
+## 1. Workflow smoke (hệ thống chính đã chạy)
+
+```powershell
+.\tests\automation\test-workflow.ps1
+```
+
+Lệnh cũ `test-workflow.bat` vẫn hoạt động.
+
+## 2. Concurrency database (tùy chọn)
+
+Chỉ sử dụng database thử nghiệm có thể xóa, tuyệt đối không dùng database ứng dụng chính:
+
+```powershell
+$env:TEST_DATABASE_URL = 'postgresql://user:password@localhost:5432/disposable_test_db'
+.\tests\automation\test-concurrency.ps1
+```
+
+## 3. End-to-End (môi trường riêng, Mailpit)
+
+```powershell
+.\tests\e2e\run-e2e.ps1 -Build
+```
+
+Hoặc:
+
+```powershell
+docker compose -f docker-compose.e2e.yml up -d --build
+docker compose -f docker-compose.e2e.yml run --rm e2e-tests
+```
+
+Lưu ý: không trỏ E2E vào dữ liệu thật; script E2E có thể tạo/sửa dữ liệu.

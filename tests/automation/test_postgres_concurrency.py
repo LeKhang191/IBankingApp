@@ -1,7 +1,7 @@
 """Real PostgreSQL concurrency invariant checks using disposable tables.
 
 Opt in: export TEST_DATABASE_URL pointing to a disposable PostgreSQL database,
-then `python -m pytest tests/integration -q`. Never run on production database.
+then `python -m pytest tests/automation/test_postgres_concurrency.py -q`. Never run on production database.
 Tests model SQL row-locking / idempotency invariants, not the full HTTP Saga.
 """
 import os

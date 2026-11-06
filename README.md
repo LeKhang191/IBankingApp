@@ -30,7 +30,7 @@ The gateway emits structured access lines with a request ID, and each API servic
 
 ## Tests and limitations
 
-Run offline tests with `python -m pytest tests/unit -q` after installing backend development dependencies. Run `test-workflow.bat` for environment smoke checks on Windows (internal-only services are checked via `docker compose exec`). See `tests/README.md` for opt-in concurrency integration tests. A configured PostgreSQL + SMTP environment is necessary to verify full workflow; successful static/unit checks do not prove a deployed system works.
+Run offline tests with ` .\tests\automation\test-workflow.ps1` after installing backend development dependencies. Run `test-workflow.bat` for environment smoke checks on Windows (internal-only services are checked via `docker compose exec`). See `tests/README.md` for automation and opt-in PostgreSQL concurrency tests. A configured PostgreSQL + SMTP environment is necessary to verify full workflow; successful static/unit checks do not prove a deployed system works.
 
 ## Diagrams
 
@@ -38,3 +38,12 @@ Run offline tests with `python -m pytest tests/unit -q` after installing backend
 
 ## Isolated real HTTP / OTP E2E tests
 See `tests/e2e/README.md`: use the dedicated `docker-compose.e2e.yml` stack (separate PostgreSQL volume, Mailpit email sink) and run the opt-in suite against **only that** stack. No production SMTP messages are sent.
+
+## Test layout (automation vs end-to-end)
+
+- `tests/automation/test-workflow.ps1`: payment Saga/Outbox smoke test.
+- `tests/automation/test-concurrency.ps1`: optional disposable PostgreSQL concurrency test.
+- `tests/automation/`: workflow/concurrency tests only.
+- `tests/e2e/`: isolated full HTTP workflow, OTP, Mailpit and Saga tests.
+
+From PowerShell: `.\tests\automation\test-workflow.ps1` or `.\tests\e2e\run-e2e.ps1 -Build`. See `tests/README.md`. The `test-workflow.bat` shortcut remains compatible.
