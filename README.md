@@ -1,3 +1,5 @@
+> **Windows one-click:** Double-click `ONECLICK-1-START.bat` to start the demo, `ONECLICK-2-AUTOMATION.bat` to run workflow + concurrency automation, or `ONECLICK-3-E2E.bat` for HTTP E2E tests. See [ONECLICK-README.md](ONECLICK-README.md).
+
 # iBanking — Microservices tuition payment
 
 FastAPI + React/Vite + PostgreSQL. Four business services (`auth`, `tuition`, `payment`, `notification`) plus Nginx API Gateway and payment Saga/outbox worker. Auth, tuition, and payment each own a **separate database and role**. Notification sends email but does not own a database.
