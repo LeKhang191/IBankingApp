@@ -5,8 +5,7 @@ import { usePaymentFlow } from '../context/PaymentFlowContext'
 import AppLayout from '../components/AppLayout'
 import StepIndicator from '../components/StepIndicator'
 import OtpInput from '../components/OtpInput'
-import * as api from '../services/mockApi'
-import axios from 'axios'
+import paymentService from '../services/paymentService'
 
 export default function OtpPage() {
   const { token, refreshUser } = useAuth()
@@ -43,21 +42,7 @@ async function handleVerify(e) {
     setError('')
     setIsVerifying(true)
     try {
-      const rawToken = token || localStorage.getItem('access_token') || localStorage.getItem('token') || ''
-      const cleanToken = rawToken.replace(/^Bearer\s+/i, '').trim()
-
-      const res = await axios.post(
-        'http://localhost:8003/api/payments/verify-otp',
-        {
-          transaction_id: (flow.transactionId || flow.transaction_id || '').trim(),
-          otp: String(otp).trim()
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${cleanToken}`
-          }
-        }
-      )
+      const res = await paymentService.verifyOtp(flow.transactionId, String(otp).trim())
 
       setResult(res.data.transaction)
       if (refreshUser) await refreshUser()
@@ -75,25 +60,14 @@ async function handleResend() {
     setError('')
     setIsResending(true)
     try {
-      const rawToken = token || localStorage.getItem('access_token') || localStorage.getItem('token') || ''
-      const cleanToken = rawToken.replace(/^Bearer\s+/i, '').trim()
-
-      const res = await axios.post(
-        'http://localhost:8003/api/payments/init',
-        { mssv: flow.tuition.mssv },
-        {
-          headers: {
-            Authorization: `Bearer ${cleanToken}`
-          }
-        }
-      )
+      const res = await paymentService.resendOtp(flow.transactionId)
 
       if (res.data.success) {
         setPaymentRequest({
           transactionId: res.data.transaction_id,
           tuition: flow.tuition,
           otpSentTo: flow.otpSentTo,
-          otpExpiresAt: Date.now() + 5 * 60 * 1000
+          otpExpiresAt: Date.now() + (res.data.expires_in_seconds || 300) * 1000
         })
         setOtp('')
       } else {

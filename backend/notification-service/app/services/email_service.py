@@ -1,5 +1,6 @@
 import aiosmtplib
 from email.message import EmailMessage
+from html import escape
 from datetime import datetime, timezone, timedelta
 from app.config import settings
 
@@ -28,10 +29,7 @@ def format_vietnam_time(time_val):
 
 async def send_email(to_email: str, subject: str, html_content: str):
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        print(f"\n[DEMO NOTIFICATION] Cần gửi email tới: {to_email}")
-        print(f"Tiêu đề: {subject}")
-        print(f"Nội dung: {html_content}\n")
-        return
+        raise RuntimeError("SMTP_USER/SMTP_PASSWORD chưa được cấu hình; không ghi OTP ra log.")
 
     message = EmailMessage()
     message["From"] = settings.EMAIL_FROM
@@ -64,18 +62,21 @@ async def send_otp_email(to_email: str, otp: str, expires_in_minutes: int):
     await send_email(to_email, subject, html_content)
 
 async def send_receipt_email(to_email: str, data: dict):
-    subject = f"Biên lai thanh toán học phí thành công - {data['transaction_id']}"
-    amount_str = f"{data['amount']:,.0f} đ".replace(",", ".")
-    created_at_vn = format_vietnam_time(data.get("created_at"))
+    transaction_id = escape(str(data.get("transaction_id", "")))
+    student_code = escape(str(data.get("student_code", "")))
+    student_name = escape(str(data.get("student_name", "")))
+    subject = f"Biên lai thanh toán học phí thành công - {transaction_id}"
+    amount_str = f"{float(data['amount']):,.0f} đ".replace(",", ".")
+    created_at_vn = escape(format_vietnam_time(data.get("created_at")))
 
     html_content = f"""
     <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
         <h2 style="color: #16a34a;">Thanh toán học phí thành công</h2>
         <p>Cảm ơn bạn đã sử dụng dịch vụ iBanking. Dưới đây là chi tiết giao dịch:</p>
         <table style="width: 100%; max-width: 500px; border-collapse: collapse; margin-top: 15px;">
-            <tr><td style="padding: 8px 0; color: #666;">Mã giao dịch:</td><td><strong>{data['transaction_id']}</strong></td></tr>
-            <tr><td style="padding: 8px 0; color: #666;">Mã số sinh viên:</td><td><strong>{data['student_code']}</strong></td></tr>
-            <tr><td style="padding: 8px 0; color: #666;">Tên sinh viên:</td><td><strong>{data['student_name']}</strong></td></tr>
+            <tr><td style="padding: 8px 0; color: #666;">Mã giao dịch:</td><td><strong>{transaction_id}</strong></td></tr>
+            <tr><td style="padding: 8px 0; color: #666;">Mã số sinh viên:</td><td><strong>{student_code}</strong></td></tr>
+            <tr><td style="padding: 8px 0; color: #666;">Tên sinh viên:</td><td><strong>{student_name}</strong></td></tr>
             <tr><td style="padding: 8px 0; color: #666;">Số tiền:</td><td><strong style="color: #2563eb;">{amount_str}</strong></td></tr>
             <tr><td style="padding: 8px 0; color: #666;">Thời gian:</td><td>{created_at_vn}</td></tr>
         </table>

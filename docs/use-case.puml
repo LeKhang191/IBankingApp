@@ -1,0 +1,27 @@
+@startuml
+left to right direction
+actor "Sinh viên / Người nộp" as Student
+rectangle "iBanking Tuition Payment" {
+  usecase "Đăng nhập" as UC1
+  usecase "Xem thông tin tài khoản" as UC2
+  usecase "Tra cứu học phí theo MSSV" as UC3
+  usecase "Khởi tạo thanh toán" as UC4
+  usecase "Nhận OTP qua email" as UC5
+  usecase "Xác thực OTP" as UC6
+  usecase "Thanh toán học phí" as UC7
+  usecase "Xem kết quả" as UC8
+  usecase "Xem lịch sử giao dịch" as UC9
+  usecase "Nhận email biên lai" as UC10
+}
+Student --> UC1
+Student --> UC2
+Student --> UC3
+Student --> UC4
+Student --> UC6
+Student --> UC8
+Student --> UC9
+UC4 .> UC5 : <<include>>
+UC6 .> UC7 : <<include>>
+UC7 .> UC8 : <<include>>
+UC7 .> UC10 : <<include>>
+@enduml

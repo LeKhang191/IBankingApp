@@ -1,15 +1,11 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql://ibanking:changeme@postgres:5432/auth_db"
-    JWT_SECRET_KEY: str = "change_this_to_a_long_random_secret"
-    JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_MINUTES: int = 60
+    DATABASE_URL: str = "postgresql://postgres:postgres@postgres:5432/ibanking"
     CORS_ALLOW_ORIGINS: str = "http://localhost:5173"
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()

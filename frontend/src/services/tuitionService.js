@@ -1,58 +1,28 @@
-import axios from 'axios';
+import axios from 'axios'
+import paymentService from './paymentService'
 
 const tuitionClient = axios.create({
-  baseURL: import.meta.env.VITE_TUITION_API_URL || 'http://localhost:8002'
-});
+  baseURL: import.meta.env.VITE_TUITION_API_URL || 'http://localhost:8002',
+  timeout: 10000,
+})
 
 tuitionClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-  if (token) {
-    config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-  }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+  const token = localStorage.getItem('access_token') || localStorage.getItem('token')
+  if (token) config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`
+  return config
+})
 
 const tuitionService = {
   lookupTuition: async (mssv) => {
-    const response = await tuitionClient.get(`/api/tuitions/${mssv}`);
-    const data = response.data;
-    
+    const { data } = await tuitionClient.get(`/api/tuitions/${encodeURIComponent(mssv)}`)
     return {
-      mssv: data.mssv || data.student_code,
+      mssv: data.student_code,
       studentName: data.student_name,
-      amount: data.amount ?? data.tuition_fee,
-      isPaid: data.is_paid
-    };
+      amount: Number(data.tuition_fee),
+      isPaid: data.is_paid,
+    }
   },
-  payTuition: async (mssv) => {
-    const PAYMENT_API_URL = import.meta.env.VITE_PAYMENT_API_URL || 'http://localhost:8003';
-    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-    
-    const response = await axios.post(
-      `${PAYMENT_API_URL}/api/payments/tuition`,
-      { mssv: mssv },
-      {
-        headers: {
-          Authorization: token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-        }
-      }
-    );
-    return response.data; 
-  },
+  getHistory: () => paymentService.getHistory(),
+}
 
-  getHistory: async () => {
-    const PAYMENT_API_URL = import.meta.env.VITE_PAYMENT_API_URL || 'http://localhost:8003';
-    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-    
-    const response = await axios.get(`${PAYMENT_API_URL}/api/payments/history`, {
-      headers: {
-        Authorization: token?.startsWith('Bearer ') ? token : `Bearer ${token}`
-      }
-    });
-    return response.data;
-  }
-};
-
-export default tuitionService;
+export default tuitionService

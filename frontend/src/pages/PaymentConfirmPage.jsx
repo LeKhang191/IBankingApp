@@ -4,8 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePaymentFlow } from '../context/PaymentFlowContext'
 import AppLayout from '../components/AppLayout'
 import StepIndicator from '../components/StepIndicator'
-import tuitionService from '../services/tuitionService'
-import axios from 'axios'
+import paymentService from '../services/paymentService'
 
 // Hàm format tiền tệ
 const formatVnd = (amount) => {
@@ -34,18 +33,7 @@ async function handleConfirm() {
     setError('')
     setIsSubmitting(true)
     try {
-      const tokenStr = localStorage.getItem('access_token') || localStorage.getItem('token') || ''
-      const cleanToken = tokenStr.replace(/^Bearer\s+/i, '').trim()
-
-      const res = await axios.post(
-        'http://localhost:8003/api/payments/init',
-        { mssv: tuition.mssv },
-        {
-          headers: {
-            Authorization: `Bearer ${cleanToken}`
-          }
-        }
-      )
+      const res = await paymentService.initPayment(tuition.mssv)
 
       if (res.data.success) {
         if (setPaymentRequest) {
@@ -53,7 +41,7 @@ async function handleConfirm() {
             transactionId: res.data.transaction_id,
             tuition: tuition,
             otpSentTo: user?.email,
-            otpExpiresAt: Date.now() + 5 * 60 * 1000 
+            otpExpiresAt: Date.now() + (res.data.expires_in_seconds || 300) * 1000 
           })
         }
 
