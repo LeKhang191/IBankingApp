@@ -8,12 +8,42 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ibanking
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ibanking"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 3s
       timeout: 3s
-      retries: 10
+      retries: 15
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./scripts:/scripts:ro
+    restart: unless-stopped
+
+  # Idempotently creates three service-owned databases and login roles.
+  # It also runs on an existing pgdata volume; PostgreSQL init scripts alone
+  # would not run again after the first initialization.
+  db-bootstrap:
+    image: postgres:16-alpine
+    command: ["sh", "/scripts/bootstrap-databases.sh"]
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ibanking
+      AUTH_DB_NAME: ${AUTH_DB_NAME:-auth_db}
+      AUTH_DB_USER: ${AUTH_DB_USER:-auth_user}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}
+      TUITION_DB_NAME: ${TUITION_DB_NAME:-tuition_db}
+      TUITION_DB_USER: ${TUITION_DB_USER:-tuition_user}
+      TUITION_DB_PASSWORD: ${TUITION_DB_PASSWORD:?Set TUITION_DB_PASSWORD in .env}
+      PAYMENT_DB_NAME: ${PAYMENT_DB_NAME:-payment_db}
+      PAYMENT_DB_USER: ${PAYMENT_DB_USER:-payment_user}
+      PAYMENT_DB_PASSWORD: ${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}
+    volumes:
+      - ./scripts:/scripts:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   auth-service:
     build:
@@ -21,15 +51,22 @@ services:
     ports:
       - "8000:8001"
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ibanking
+      DATABASE_URL: postgresql://${AUTH_DB_USER:-auth_user}:${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}@postgres:5432/${AUTH_DB_NAME:-auth_db}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-60}
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:5173}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-bootstrap:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
 
   tuition-service:
     build:
@@ -37,12 +74,19 @@ services:
     ports:
       - "8002:8001"
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ibanking
+      DATABASE_URL: postgresql://${TUITION_DB_USER:-tuition_user}:${TUITION_DB_PASSWORD:?Set TUITION_DB_PASSWORD in .env}@postgres:5432/${TUITION_DB_NAME:-tuition_db}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:5173}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-bootstrap:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
 
   payment-service:
     build:
@@ -50,7 +94,7 @@ services:
     ports:
       - "8003:8001"
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ibanking
+      DATABASE_URL: postgresql://${PAYMENT_DB_USER:-payment_user}:${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}@postgres:5432/${PAYMENT_DB_NAME:-payment_db}
       AUTH_SERVICE_URL: http://auth-service:8001
       TUITION_SERVICE_URL: http://tuition-service:8001
       NOTIFICATION_SERVICE_URL: http://notification-service:8003
@@ -62,14 +106,20 @@ services:
       OTP_RESEND_COOLDOWN_SECONDS: ${OTP_RESEND_COOLDOWN_SECONDS:-30}
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:5173}
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-bootstrap:
+        condition: service_completed_successfully
       auth-service:
-        condition: service_started
+        condition: service_healthy
       tuition-service:
-        condition: service_started
+        condition: service_healthy
       notification-service:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
 
   notification-service:
     build:
@@ -81,11 +131,14 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       EMAIL_FROM: ${EMAIL_FROM:-iBanking <noreply@ibanking.local>}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
-    # Không publish cổng Notification ra host; chỉ Payment Service gọi qua Docker network.
     expose:
       - "8003"
-    depends_on:
-      - postgres
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
 
   frontend:
     build:
@@ -100,9 +153,13 @@ services:
       - ./frontend:/app
       - /app/node_modules
     depends_on:
-      - auth-service
-      - tuition-service
-      - payment-service
+      auth-service:
+        condition: service_healthy
+      tuition-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   pgdata:

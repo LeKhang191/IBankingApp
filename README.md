@@ -1,28 +1,51 @@
-# iBanking - Tuition Payment Microservices
+# iBanking — Tuition Payment Microservices
 
-This project demonstrates a student tuition payment workflow using a React frontend and four FastAPI services: Auth, Tuition, Payment, and Notification.
+A coursework project for student tuition payment using a React frontend and four FastAPI services: Auth, Tuition, Payment, and Notification.
 
-## Architecture and diagrams
+## Phase 2 architecture
 
-See `docs/` for the Use Case, ERD, and Microservices Architecture diagram source files. The current Phase 1 patch still uses one PostgreSQL database shared by the service containers; separate database ownership is planned as Phase 2.
+The data-owning services now have separate PostgreSQL databases and dedicated login roles:
 
-## Run locally with Docker Compose
+| Service | Database | Owner |
+|---|---|---|
+| Auth | `auth_db` | `auth_user` |
+| Tuition | `tuition_db` | `tuition_user` |
+| Payment | `payment_db` | `payment_user` |
+| Notification | No database | N/A |
 
-1. Copy `.env.example` to `.env` and replace every placeholder with a unique secret and valid SMTP credentials.
-2. Run `docker compose up --build -d`.
-3. Open the frontend at `http://localhost:5173`.
-4. API documentation is available at `http://localhost:8000/docs`, `http://localhost:8002/docs`, and `http://localhost:8003/docs`.
+The services share one PostgreSQL server/container, not one application database. Each application role is granted connection only to its own database. Service-to-service business operations use HTTP APIs. See `docs/microservices-architecture.puml`.
 
-For an existing database, read `APPLY_PHASE1.md` and run the migration in `docs/phase1_migration.sql` after backing up PostgreSQL.
+## Run
 
-## Demo accounts
+1. Copy `.env.example` to `.env` only for a new install. For an existing Phase 1 install, keep the current root `.env` and add the Phase 2 database variables from `APPLY_PHASE2.md`.
+2. Ensure the root `.env` contains distinct `AUTH_DB_PASSWORD`, `TUITION_DB_PASSWORD`, and `PAYMENT_DB_PASSWORD` values.
+3. Validate and start:
 
-The Auth Service seeds demo users only when the users table is empty. Check the configured seed credentials in `backend/auth-service/app/crud.py` before presenting. Change them before any public deployment.
+   ```powershell
+   docker compose config --quiet
+   docker compose up --build -d
+   docker compose ps
+   ```
 
-## Important security note
+4. Open `http://localhost:5173`. OpenAPI docs: `http://localhost:8000/docs`, `http://localhost:8002/docs`, and `http://localhost:8003/docs`.
 
-Do not commit `.env`, SMTP app passwords, JWT secrets, or internal service tokens. If any credential has been committed or shared, rotate it. The supplied ZIP contained `.env` files; treat their secrets as exposed.
+For an existing Phase 1 database, follow **all** backup, schema migration, and data migration steps in `APPLY_PHASE2.md` before using the Phase 2 databases for demo.
 
-## Project quality status
+## Diagrams
 
-This repository is a coursework/demo system, not a production banking system. Read `APPLY_PHASE1.md` for the changes in Phase 1 and the remaining engineering work needed for stronger transaction recovery, separate data ownership, automated concurrency testing, API Gateway, and observability.
+- `docs/use-case.puml`
+- `docs/erd.puml`
+- `docs/microservices-architecture.puml`
+
+## Tests
+
+- `scripts/test-db-isolation.sh`: verifies service roles can connect to their own database and cannot connect to the other service databases.
+- `tests/concurrency_smoke.py`: API-level concurrency smoke test for concurrent wallet debits and tuition settlement. Use a disposable tuition row.
+
+## Security
+
+Do not commit `.env`, SMTP app passwords, JWT signing secrets, internal service tokens, or database passwords. If a credential has been exposed, rotate it. This is an academic demonstration system, not a production banking platform.
+
+## Current engineering scope
+
+Phase 2 establishes database-per-service ownership and a legacy data migration path. Alembic migrations, durable Saga recovery, transactional outbox workers, API Gateway, structured logs/correlation IDs, and distributed tracing remain separate implementation tasks.

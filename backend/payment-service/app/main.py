@@ -15,7 +15,7 @@ from sqlalchemy.orm import sessionmaker, Session
 
 from app.models import Base, PaymentTransaction
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/ibanking")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://payment_user:change_me@postgres:5432/payment_db")
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)

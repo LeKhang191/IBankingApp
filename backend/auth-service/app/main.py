@@ -24,7 +24,8 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        seed_demo_users(db)
+        if settings.SEED_DEMO_DATA:
+            seed_demo_users(db)
     finally:
         db.close()
 

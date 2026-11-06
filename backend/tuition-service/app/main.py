@@ -24,7 +24,7 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        if db.query(Tuition).count() == 0:
+        if settings.SEED_DEMO_DATA and db.query(Tuition).count() == 0:
             db.add_all([
                 Tuition(student_code="52000001", student_name="Nguyễn Văn A", tuition_fee=15000000, is_paid=False),
                 Tuition(student_code="52000002", student_name="Trần Thị B", tuition_fee=12500000, is_paid=True),
