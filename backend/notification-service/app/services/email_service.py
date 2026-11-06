@@ -1,4 +1,5 @@
 import aiosmtplib
+import os
 from email.message import EmailMessage
 from html import escape
 from datetime import datetime, timezone, timedelta
@@ -28,8 +29,9 @@ def format_vietnam_time(time_val):
     return vn_time.strftime("%d/%m/%Y %H:%M:%S")
 
 async def send_email(to_email: str, subject: str, html_content: str):
-    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        raise RuntimeError("SMTP_USER/SMTP_PASSWORD chưa được cấu hình; không ghi OTP ra log.")
+    no_auth = os.getenv("SMTP_ALLOW_UNAUTHENTICATED", "false").lower() == "true"
+    if not no_auth and (not settings.SMTP_USER or not settings.SMTP_PASSWORD):
+        raise RuntimeError("SMTP credentials are required outside isolated email test mode.")
 
     message = EmailMessage()
     message["From"] = settings.EMAIL_FROM
@@ -41,9 +43,9 @@ async def send_email(to_email: str, subject: str, html_content: str):
         message,
         hostname=settings.SMTP_HOST,
         port=settings.SMTP_PORT,
-        start_tls=True,
-        username=settings.SMTP_USER,
-        password=settings.SMTP_PASSWORD,
+        start_tls=not no_auth,
+        username=None if no_auth else settings.SMTP_USER,
+        password=None if no_auth else settings.SMTP_PASSWORD,
     )
 
 async def send_otp_email(to_email: str, otp: str, expires_in_minutes: int):

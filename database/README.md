@@ -26,3 +26,6 @@ docker compose exec -T postgres psql -U postgres -d payment_db < database/migrat
 ```
 
 For already running Phase 3 installations, skip `001_saga_outbox.sql` if already applied. Check constraints require that historical records satisfy them. **Never run `docker compose down -v` to apply a migration.** Scripts under `legacy/` are for the original single-DB schema and are NOT used for fresh installation.
+
+## Active payment duplicate protection
+`payment/003_active_payment_unique.sql` creates a **partial unique index** on `(user_id, mssv)` for active transactions to eliminate the concurrent init race. Check/resolve existing active duplicates first (see `../APPLY_PHASE3.md`); SQLAlchemy `create_all()` does not retrofit indexes into existing tables.

@@ -48,8 +48,8 @@ services:
   auth-service:
     build:
       context: ./backend/auth-service
-    ports:
-      - "8000:8001"
+    expose:
+      - "8001"
     environment:
       DATABASE_URL: postgresql://${AUTH_DB_USER:-auth_user}:${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}@postgres:5432/${AUTH_DB_NAME:-auth_db}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
@@ -71,8 +71,8 @@ services:
   tuition-service:
     build:
       context: ./backend/tuition-service
-    ports:
-      - "8002:8001"
+    expose:
+      - "8001"
     environment:
       DATABASE_URL: postgresql://${TUITION_DB_USER:-tuition_user}:${TUITION_DB_PASSWORD:?Set TUITION_DB_PASSWORD in .env}@postgres:5432/${TUITION_DB_NAME:-tuition_db}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
@@ -91,8 +91,8 @@ services:
   payment-service:
     build:
       context: ./backend/payment-service
-    ports:
-      - "8003:8001"
+    expose:
+      - "8001"
     environment:
       DATABASE_URL: postgresql://${PAYMENT_DB_USER:-payment_user}:${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}@postgres:5432/${PAYMENT_DB_NAME:-payment_db}
       AUTH_SERVICE_URL: http://auth-service:8001

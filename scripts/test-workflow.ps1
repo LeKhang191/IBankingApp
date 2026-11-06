@@ -74,9 +74,12 @@ Invoke-Check 'Required containers are running' {
 }
 
 Invoke-ComposeHealth 'API Gateway' 'http://localhost:8080/health'
-Invoke-ComposeHealth 'Auth Service' 'http://localhost:8000/health'
-Invoke-ComposeHealth 'Tuition Service' 'http://localhost:8002/health'
-Invoke-ComposeHealth 'Payment Service' 'http://localhost:8003/health'
+foreach ($service in @('auth-service','tuition-service','payment-service')) {
+    Invoke-Check "$service internal health" {
+        docker compose exec -T $service python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8001/health',timeout=5).read().decode())"
+        if ($LASTEXITCODE -ne 0) { throw "Internal service $service failed health check" }
+    }
+}
 
 Invoke-Check 'Notification Service health (inside Docker network)' {
     docker compose exec -T notification-service python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8003/health', timeout=5).read().decode())"

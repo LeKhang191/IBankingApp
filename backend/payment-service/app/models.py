@@ -12,8 +12,9 @@ from sqlalchemy import (
     UniqueConstraint,
     Index,
     CheckConstraint,
+    text,
 )
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
@@ -23,6 +24,9 @@ class PaymentTransaction(Base):
     __table_args__ = (
         CheckConstraint("amount > 0", name="ck_payments_positive_amount"),
         CheckConstraint("otp_attempts >= 0 AND otp_resend_count >= 0", name="ck_payments_otp_counters"),
+        Index("uq_payment_user_mssv_active", "user_id", "mssv", unique=True,
+              postgresql_where=text("status IN ('pending','processing','compensation_required')"),
+              sqlite_where=text("status IN ('pending','processing','compensation_required')")),
     )
 
     id = Column(String(64), primary_key=True, index=True)

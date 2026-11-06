@@ -68,3 +68,20 @@ def test_api_gateway_routes_are_explicitly_mapped():
     for prefix in ("/api/auth/", "/api/tuitions/", "/api/payments/"):
         assert prefix in config
     assert "location ~ ^/api/auth/(deduct|refund)/?$ { return 404; }" in config
+
+
+def test_active_payment_unique_index_blocks_duplicate_pending_rows():
+    from sqlalchemy.exc import IntegrityError
+    base = load_models("payment-service")
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    base.metadata.create_all(engine)
+    columns = "id,mssv,student_name,amount,user_id,user_email,otp_hash,otp_expires_at,status,otp_attempts,otp_resend_count,is_verified,debit_applied,tuition_settled,saga_attempts,created_at"
+    values = "(:id,'52123456','Test',100,'u1','a@example.test','hash','2030-01-01 00:00:00',:status,0,0,0,0,0,0,'2026-01-01 00:00:00')"
+    with engine.begin() as conn:
+        conn.execute(text(f"INSERT INTO transactions ({columns}) VALUES {values}"), {"id": "one", "status": "pending"})
+    with pytest.raises(IntegrityError):
+        with engine.begin() as conn:
+            conn.execute(text(f"INSERT INTO transactions ({columns}) VALUES {values}"), {"id": "two", "status": "processing"})
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE transactions SET status='failed' WHERE id='one'"))
+        conn.execute(text(f"INSERT INTO transactions ({columns}) VALUES {values}"), {"id": "two", "status": "pending"})

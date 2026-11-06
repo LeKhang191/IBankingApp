@@ -13,9 +13,11 @@ from fastapi import FastAPI, APIRouter, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker, Session
 
 from app.models import Base, OutboxEvent, PaymentTransaction
+from app.observability import outbound_headers
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -54,6 +56,9 @@ def get_db():
 
 
 app = FastAPI(title="Payment Service", version="3.0.0")
+
+from app.observability import install_request_logging
+install_request_logging(app, "payment-service")
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 
 app.add_middleware(
@@ -83,7 +88,7 @@ def otp_digest(otp: str) -> str:
 def internal_headers() -> dict:
     if not INTERNAL_SERVICE_TOKEN:
         raise HTTPException(status_code=503, detail="INTERNAL_SERVICE_TOKEN chưa được cấu hình.")
-    return {"X-Internal-Token": INTERNAL_SERVICE_TOKEN}
+    return outbound_headers({"X-Internal-Token": INTERNAL_SERVICE_TOKEN})
 
 
 async def get_user_data(authorization: str) -> dict:
@@ -91,7 +96,7 @@ async def get_user_data(authorization: str) -> dict:
         async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.get(
                 f"{AUTH_SERVICE_URL}/api/auth/me",
-                headers={"Authorization": authorization},
+                headers=outbound_headers({"Authorization": authorization}),
             )
     except httpx.RequestError as exc:
         raise HTTPException(status_code=503, detail="Auth Service hiện không khả dụng.") from exc
@@ -467,7 +472,7 @@ async def init_payment(
 
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
-            tuition_res = await client.get(f"{TUITION_SERVICE_URL}/api/tuitions/{payload.mssv}")
+            tuition_res = await client.get(f"{TUITION_SERVICE_URL}/api/tuitions/{payload.mssv}", headers=outbound_headers())
     except httpx.RequestError as exc:
         raise HTTPException(status_code=503, detail="Tuition Service hiện không khả dụng.") from exc
 
@@ -519,7 +524,11 @@ async def init_payment(
         saga_attempts=0,
     )
     db.add(txn)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Bạn đang có giao dịch chờ xử lý cho MSSV này.") from exc
 
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:

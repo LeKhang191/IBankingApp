@@ -8,6 +8,9 @@ from app.crud import seed_demo_users
 
 app = FastAPI(title="Auth Service")
 
+from app.observability import install_request_logging
+install_request_logging(app, "auth-service")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ALLOW_ORIGINS.split(","),

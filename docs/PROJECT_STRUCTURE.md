@@ -4,6 +4,7 @@
 IBankingApp-microservice/
 ├── .env.example
 ├── docker-compose.yml
+├── docker-compose.e2e.yml           # Isolated real HTTP tests + Mailpit
 ├── README.md
 ├── APPLY_PHASE3.md
 ├── gateway/
@@ -18,7 +19,8 @@ IBankingApp-microservice/
 │   │   ├── tuition/001_constraints.sql
 │   │   └── payment/
 │   │       ├── 001_saga_outbox.sql
-│   │       └── 002_constraints.sql
+│   │       ├── 002_constraints.sql
+│   │       └── 003_active_payment_unique.sql
 │   └── legacy/phase1_monolith_migration.sql
 ├── backend/
 │   ├── auth-service/app/            # User, wallet ledger, token & guarded debit/refund
@@ -37,10 +39,14 @@ IBankingApp-microservice/
 │   ├── use-case.puml
 │   ├── microservices-architecture.puml
 │   └── PROJECT_STRUCTURE.md
-├── scripts/test-workflow.ps1
+├── scripts/
+│   ├── test-workflow.ps1
+│   └── README.md
 ├── tests/
 │   ├── README.md
-│   └── unit/
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/                         # HTTP + email sink + concurrency
 └── test-workflow.bat
 ```
 

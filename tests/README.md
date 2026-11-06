@@ -7,3 +7,6 @@
 5. **Manual E2E:** use a disposable demo account + SMTP sandbox mailbox to verify login -> tuition lookup -> OTP -> payment -> balance, paid status, history and email. Never run destructive demos against production.
 
 **Important:** do not claim automated coverage proves actual concurrency across microservices. Full concurrency / failure-injection E2E tests and automated mail delivery checks are additional work before a genuine 10/10-level verification.
+
+## E2E via actual services
+See [`e2e/README.md`](e2e/README.md) for **separate disposable Compose project** and Mailpit instructions. `pytest tests/unit` never touches a database, and `pytest tests/integration` needs TEST_DATABASE_URL; `pytest tests/e2e` will skip unless the explicit disposable runner sentinel is present.

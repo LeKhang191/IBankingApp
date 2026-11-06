@@ -8,6 +8,9 @@ from app.services.email_service import send_otp_email, send_receipt_email
 
 app = FastAPI(title="Notification Service", version="2.0.0")
 
+from app.observability import install_request_logging
+install_request_logging(app, "notification-service")
+
 
 def require_internal_service(x_internal_token: str = Header(default="")):
     expected = os.getenv("INTERNAL_SERVICE_TOKEN", "")

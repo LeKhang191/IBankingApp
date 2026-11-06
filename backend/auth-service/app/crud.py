@@ -9,7 +9,7 @@ def get_user_by_username(db: Session, username: str) -> User | None:
 
 
 def seed_demo_users(db: Session) -> None:
-    """Tạo sẵn 2 tài khoản demo giống mockApi.js nếu DB chưa có ai."""
+    """Tạo sẵn 2 tài khoản demo khi DB chưa có ai."""
     if db.query(User).first() is not None:
         return
 

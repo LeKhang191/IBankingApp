@@ -8,6 +8,9 @@ from app.models import Tuition
 
 app = FastAPI(title="Tuition Service", version="2.0.0")
 
+from app.observability import install_request_logging
+install_request_logging(app, "tuition-service")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ALLOW_ORIGINS.split(","),

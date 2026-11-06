@@ -14,7 +14,7 @@ The frontend uses **real API endpoints** through the gateway:
 - `/api/tuitions/*` -> Tuition Service
 - `/api/payments/*` -> Payment Service
 
-Internal debit/refund and tuition settlement endpoints are blocked at the gateway; they are available only on the Docker service network with an internal token. Direct localhost service ports remain exposed for backwards-compatible diagnostics; secure/remove them for production use.
+Internal debit/refund and tuition settlement endpoints are blocked at the gateway; they are available only on the Docker service network with an internal token. Business service ports are **internal-only** (`expose`) by default; only the API Gateway is published.
 
 ## Database
 
@@ -26,12 +26,15 @@ Login -> tuition lookup -> start payment -> email OTP -> verify -> idempotent de
 
 ## Logging and observability
 
-The gateway emits access logs and `X-Request-ID` headers; services write to Docker logs, visible via `docker compose logs -f`. This is basic request correlation **not distributed tracing** (no Jaeger/Zipkin spans).
+The gateway emits structured access lines with a request ID, and each API service writes request ID, method, path, status, latency and unhandled errors to Docker logs. Payment propagates the ID to downstream calls. This is **correlation logging, not distributed tracing** (no Jaeger/Zipkin spans).
 
 ## Tests and limitations
 
-Run offline tests with `python -m pytest tests/unit -q` after installing backend development dependencies. Run `test-workflow.bat` for environment smoke checks on Windows. See `tests/README.md` for opt-in concurrency integration tests. A configured PostgreSQL + SMTP environment is necessary to verify full workflow; successful static/unit checks do not prove a deployed system works.
+Run offline tests with `python -m pytest tests/unit -q` after installing backend development dependencies. Run `test-workflow.bat` for environment smoke checks on Windows (internal-only services are checked via `docker compose exec`). See `tests/README.md` for opt-in concurrency integration tests. A configured PostgreSQL + SMTP environment is necessary to verify full workflow; successful static/unit checks do not prove a deployed system works.
 
 ## Diagrams
 
 `docs/use-case.puml`, `docs/erd.puml`, `docs/microservices-architecture.puml` (PlantUML). The source folder structure is documented in `docs/PROJECT_STRUCTURE.md`.
+
+## Isolated real HTTP / OTP E2E tests
+See `tests/e2e/README.md`: use the dedicated `docker-compose.e2e.yml` stack (separate PostgreSQL volume, Mailpit email sink) and run the opt-in suite against **only that** stack. No production SMTP messages are sent.
