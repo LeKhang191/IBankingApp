@@ -19,6 +19,8 @@ const paymentService = {
     transaction_id: transactionId,
     otp,
   }),
+  getStatus: (transactionId) => paymentClient.get(`/api/payments/status/${encodeURIComponent(transactionId)}`),
+  retryPayment: (transactionId) => paymentClient.post(`/api/payments/retry/${encodeURIComponent(transactionId)}`),
   getHistory: async () => (await paymentClient.get('/api/payments/history')).data,
 }
 

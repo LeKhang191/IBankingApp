@@ -1,5 +1,5 @@
 @startuml
- title iBanking - Microservices Architecture (Phase 2)
+ title iBanking - Microservices Architecture (Phase 3: Saga + Outbox)
  left to right direction
  skinparam componentStyle rectangle
 
@@ -13,33 +13,39 @@
    component "Auth Service\nFastAPI :8001" as Auth
    component "Tuition Service\nFastAPI :8001" as Tuition
    component "Payment Service\nFastAPI :8001" as Payment
+   component "Payment Worker\nSaga Recovery + Outbox" as Worker
    component "Notification Service\nFastAPI :8003" as Notify
  }
 
  database "auth_db\nOwner: auth_user" as AuthDB
  database "tuition_db\nOwner: tuition_user" as TuitionDB
- database "payment_db\nOwner: payment_user" as PaymentDB
+ database "payment_db\nOwner: payment_user\ntransactions + outbox_events" as PaymentDB
  cloud "SMTP Provider" as SMTP
 
  Student --> FE
  FE --> Auth : Login / profile\nHTTP REST
  FE --> Tuition : Tuition lookup\nHTTP REST
- FE --> Payment : Init / OTP / history\nHTTP REST
+ FE --> Payment : Init / OTP / history / status\nHTTP REST
  Payment --> Auth : Verify user, debit, refund\nHTTP + internal token
  Payment --> Tuition : Read tuition, settle\nHTTP + internal token
- Payment --> Notify : OTP / receipt\nHTTP + internal token
+ Payment --> Notify : Send OTP\nHTTP + internal token
+ Payment --> PaymentDB : Commit Saga state + receipt outbox\nSingle local DB transaction
+ Worker --> PaymentDB : Claim expired Saga leases\nClaim outbox with SKIP LOCKED
+ Worker --> Auth : Retry debit/refund idempotently\nHTTP + transaction_id
+ Worker --> Tuition : Retry settlement idempotently\nHTTP + transaction_id
+ Worker --> Notify : Deliver receipt with retry\nHTTP + event id
  Auth --> AuthDB : SQLAlchemy
  Tuition --> TuitionDB : SQLAlchemy
  Payment --> PaymentDB : SQLAlchemy
  Notify --> SMTP : SMTP / TLS
 
- note bottom of AuthDB
-   Owned and accessed by Auth Service only.
- end note
- note bottom of TuitionDB
-   Owned and accessed by Tuition Service only.
- end note
  note bottom of PaymentDB
-   Owned and accessed by Payment Service only.
+   Receipt outbox row is committed atomically
+   with transaction status SUCCESS.
+ end note
+ note bottom of Worker
+   Saga retries use transaction_id as idempotency key.
+   Outbox delivery is at-least-once; SMTP can rarely
+   deliver a duplicate if acknowledgement is lost.
  end note
 @enduml

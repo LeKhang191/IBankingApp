@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import authService from '../services/authService'; 
 
 const AuthContext = createContext();
@@ -7,7 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true); 
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     const token = localStorage.getItem('access_token');
     if (token) {
       try {
@@ -19,7 +19,8 @@ export function AuthProvider({ children }) {
         setUser(null);
       }
     }
-  };
+    return null;
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {

@@ -104,6 +104,11 @@ services:
       OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-5}
       OTP_MAX_RESENDS: ${OTP_MAX_RESENDS:-3}
       OTP_RESEND_COOLDOWN_SECONDS: ${OTP_RESEND_COOLDOWN_SECONDS:-30}
+      SAGA_LEASE_SECONDS: ${SAGA_LEASE_SECONDS:-90}
+      SAGA_RETRY_SECONDS: ${SAGA_RETRY_SECONDS:-10}
+      OUTBOX_POLL_SECONDS: ${OUTBOX_POLL_SECONDS:-3}
+      OUTBOX_LEASE_SECONDS: ${OUTBOX_LEASE_SECONDS:-60}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:5173}
     depends_on:
       db-bootstrap:
@@ -119,6 +124,38 @@ services:
       interval: 5s
       timeout: 3s
       retries: 15
+    restart: unless-stopped
+
+  # Separate process for durable Saga recovery and transactional outbox delivery.
+  payment-worker:
+    build:
+      context: ./backend/payment-service
+    command: ["python", "-m", "app.worker"]
+    environment:
+      DATABASE_URL: postgresql://${PAYMENT_DB_USER:-payment_user}:${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}@postgres:5432/${PAYMENT_DB_NAME:-payment_db}
+      AUTH_SERVICE_URL: http://auth-service:8001
+      TUITION_SERVICE_URL: http://tuition-service:8001
+      NOTIFICATION_SERVICE_URL: http://notification-service:8003
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
+      OTP_PEPPER: ${OTP_PEPPER:?Set OTP_PEPPER in .env}
+      OTP_EXPIRE_MINUTES: ${OTP_EXPIRE_MINUTES:-5}
+      OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-5}
+      OTP_MAX_RESENDS: ${OTP_MAX_RESENDS:-3}
+      OTP_RESEND_COOLDOWN_SECONDS: ${OTP_RESEND_COOLDOWN_SECONDS:-30}
+      SAGA_LEASE_SECONDS: ${SAGA_LEASE_SECONDS:-90}
+      SAGA_RETRY_SECONDS: ${SAGA_RETRY_SECONDS:-10}
+      OUTBOX_POLL_SECONDS: ${OUTBOX_POLL_SECONDS:-3}
+      OUTBOX_LEASE_SECONDS: ${OUTBOX_LEASE_SECONDS:-60}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      db-bootstrap:
+        condition: service_completed_successfully
+      auth-service:
+        condition: service_healthy
+      tuition-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
     restart: unless-stopped
 
   notification-service:

@@ -29,6 +29,40 @@ export default function OtpPage() {
     return () => clearInterval(interval)
   }, [flow.otpExpiresAt])
 
+  // Poll only the current user's transaction. This lets the page show a result
+  // when the background Saga worker completes a retry after a temporary outage.
+  useEffect(() => {
+    if (!flow.transactionId) return
+    let active = true
+    let navigating = false
+
+    const checkStatus = async () => {
+      try {
+        const response = await paymentService.getStatus(flow.transactionId)
+        const transaction = response.data?.transaction
+        if (!active || !transaction) return
+
+        if (transaction.status === 'success' && !navigating) {
+          navigating = true
+          setResult(transaction)
+          if (refreshUser) await refreshUser()
+          if (active) navigate('/thanh-toan/ket-qua')
+        } else if (['failed', 'expired', 'otp_locked'].includes(transaction.status)) {
+          setError(`Giao dịch đã kết thúc: ${transaction.status}`)
+        }
+      } catch (pollError) {
+        // A transient polling error must not interrupt OTP entry.
+      }
+    }
+
+    const interval = setInterval(checkStatus, 4000)
+    checkStatus()
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [flow.transactionId, navigate, refreshUser, setResult])
+
   if (!flow.tuition || !flow.transactionId) {
     return <Navigate to="/thanh-toan" replace />
   }
