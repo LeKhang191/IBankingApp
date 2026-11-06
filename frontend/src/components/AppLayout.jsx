@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { formatVnd } from '../services/mockApi'
+import { formatVnd } from '../utils/format'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Trang chủ' },

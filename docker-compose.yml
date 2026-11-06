@@ -14,7 +14,7 @@ services:
       retries: 15
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./scripts:/scripts:ro
+      - ./database:/database:ro
     restart: unless-stopped
 
   # Idempotently creates three service-owned databases and login roles.
@@ -22,7 +22,7 @@ services:
   # would not run again after the first initialization.
   db-bootstrap:
     image: postgres:16-alpine
-    command: ["sh", "/scripts/bootstrap-databases.sh"]
+    command: ["sh", "/database/bootstrap/bootstrap-databases.sh"]
     environment:
       PGHOST: postgres
       PGPORT: "5432"
@@ -39,7 +39,7 @@ services:
       PAYMENT_DB_USER: ${PAYMENT_DB_USER:-payment_user}
       PAYMENT_DB_PASSWORD: ${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}
     volumes:
-      - ./scripts:/scripts:ro
+      - ./database:/database:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -177,18 +177,12 @@ services:
       retries: 15
     restart: unless-stopped
 
-  frontend:
-    build:
-      context: ./frontend
+  api-gateway:
+    image: nginx:1.27-alpine
     ports:
-      - "5173:5173"
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
-      VITE_TUITION_API_URL: ${VITE_TUITION_API_URL:-http://localhost:8002}
-      VITE_PAYMENT_API_URL: ${VITE_PAYMENT_API_URL:-http://localhost:8003}
+      - "8080:80"
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       auth-service:
         condition: service_healthy
@@ -196,6 +190,23 @@ services:
         condition: service_healthy
       payment-service:
         condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+      VITE_TUITION_API_URL: ${VITE_TUITION_API_URL:-http://localhost:8080}
+      VITE_PAYMENT_API_URL: ${VITE_PAYMENT_API_URL:-http://localhost:8080}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      api-gateway:
+        condition: service_started
     restart: unless-stopped
 
 volumes:

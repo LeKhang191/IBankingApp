@@ -2,7 +2,7 @@ import React from 'react'
 import { Navigate, Link, useNavigate } from 'react-router-dom'
 import { usePaymentFlow } from '../context/PaymentFlowContext'
 import AppLayout from '../components/AppLayout'
-import { formatVnd } from '../services/mockApi'
+import { formatVnd } from '../utils/format'
 
 export default function ResultPage() {
   const { flow, reset } = usePaymentFlow()

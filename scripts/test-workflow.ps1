@@ -63,7 +63,7 @@ Invoke-Check 'Required containers are running' {
     docker compose ps
     if ($LASTEXITCODE -ne 0) { throw 'Không đọc được trạng thái Docker Compose.' }
     $running = docker compose ps --status running --services
-    $required = @('postgres','db-bootstrap','auth-service','tuition-service','payment-service','payment-worker','notification-service','frontend')
+    $required = @('postgres','db-bootstrap','auth-service','tuition-service','payment-service','payment-worker','notification-service','api-gateway','frontend')
     foreach ($service in $required) {
         if ($running -notcontains $service) {
             # db-bootstrap is a one-shot container and should exit successfully, not remain running.
@@ -73,6 +73,7 @@ Invoke-Check 'Required containers are running' {
     }
 }
 
+Invoke-ComposeHealth 'API Gateway' 'http://localhost:8080/health'
 Invoke-ComposeHealth 'Auth Service' 'http://localhost:8000/health'
 Invoke-ComposeHealth 'Tuition Service' 'http://localhost:8002/health'
 Invoke-ComposeHealth 'Payment Service' 'http://localhost:8003/health'

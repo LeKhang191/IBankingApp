@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePaymentFlow } from '../context/PaymentFlowContext'
 import AppLayout from '../components/AppLayout'
 import StepIndicator from '../components/StepIndicator'
-import { formatVnd } from '../services/mockApi'
+import { formatVnd } from '../utils/format'
 import tuitionService from '../services/tuitionService'
 
 export default function PaymentLookupPage() {

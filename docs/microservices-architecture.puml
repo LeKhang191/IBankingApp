@@ -7,6 +7,7 @@
 
  package "Client" {
    [React Frontend] as FE
+   component "Nginx API Gateway\n:8080" as Gateway
  }
 
  package "Backend Microservices" {
@@ -23,9 +24,10 @@
  cloud "SMTP Provider" as SMTP
 
  Student --> FE
- FE --> Auth : Login / profile\nHTTP REST
- FE --> Tuition : Tuition lookup\nHTTP REST
- FE --> Payment : Init / OTP / history / status\nHTTP REST
+ FE --> Gateway : HTTPS/HTTP REST
+ Gateway --> Auth : /api/auth/*
+ Gateway --> Tuition : /api/tuitions/*
+ Gateway --> Payment : /api/payments/*
  Payment --> Auth : Verify user, debit, refund\nHTTP + internal token
  Payment --> Tuition : Read tuition, settle\nHTTP + internal token
  Payment --> Notify : Send OTP\nHTTP + internal token

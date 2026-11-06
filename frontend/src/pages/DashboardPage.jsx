@@ -3,20 +3,28 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/AppLayout'
 
-// Bỏ import mockApi đi và mang hàm formatVnd ra đây dùng tạm
-export const formatVnd = (amount) => {
-  return new Intl.NumberFormat('vi-VN').format(amount) + ' đ'
-}
+import paymentService from '../services/paymentService'
+import { formatVnd } from '../utils/format'
 
 export default function DashboardPage() {
-  const { user } = useAuth() // Bỏ biến token đi vì AuthContext không export biến này
+  const { user } = useAuth()
   const [recentTransactions, setRecentTransactions] = useState([])
-  const [isLoading, setIsLoading] = useState(false) // Đổi thành false vì không cần chờ tải
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    // Tạm thời set mảng rỗng. 
-    // Sau này bạn build xong payment-service thì sẽ gọi API thật ở đây!
-    setRecentTransactions([])
+    let cancelled = false
+    paymentService.getHistory()
+      .then((data) => {
+        if (!cancelled) setRecentTransactions(Array.isArray(data?.transactions) ? data.transactions.slice(0, 5) : [])
+      })
+      .catch(() => {
+        if (!cancelled) setError('Không thể tải giao dịch gần đây. Vui lòng thử lại sau.')
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+    return () => { cancelled = true }
   }, [])
 
   return (
@@ -53,6 +61,8 @@ export default function DashboardPage() {
         <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-card">
           {isLoading ? (
             <p className="px-5 py-6 text-sm text-ink/50">Đang tải...</p>
+          ) : error ? (
+            <p className="px-5 py-6 text-sm text-danger">{error}</p>
           ) : recentTransactions.length === 0 ? (
             <p className="px-5 py-6 text-sm text-ink/50">Bạn chưa có giao dịch nào.</p>
           ) : (
@@ -63,10 +73,10 @@ export default function DashboardPage() {
               >
                 <div>
                   <p className="text-sm font-medium text-ink">
-                    Học phí MSSV {txn.mssv} — {txn.studentName}
+                    Học phí MSSV {txn.mssv} — {(txn.studentName || txn.student_name)}
                   </p>
                   <p className="text-xs text-ink/50">
-                    {new Date(txn.createdAt).toLocaleString('vi-VN')}
+                    {new Date((txn.createdAt || txn.created_at)).toLocaleString('vi-VN')}
                   </p>
                 </div>
                 <p className="money text-sm font-semibold text-danger">-{formatVnd(txn.amount)}</p>

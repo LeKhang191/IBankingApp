@@ -1,16 +1,7 @@
-import axios from 'axios'
+import axiosClient from './axiosClient'
 import paymentService from './paymentService'
 
-const tuitionClient = axios.create({
-  baseURL: import.meta.env.VITE_TUITION_API_URL || 'http://localhost:8002',
-  timeout: 10000,
-})
-
-tuitionClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token') || localStorage.getItem('token')
-  if (token) config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`
-  return config
-})
+const tuitionClient = axiosClient
 
 const tuitionService = {
   lookupTuition: async (mssv) => {

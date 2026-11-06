@@ -1,53 +1,9 @@
-# iBanking Windows workflow tests
+# Testing strategy
 
-These tests are non-destructive. They do not delete Docker volumes, reset balances, or create a real payment.
+1. **Offline unit/schema tests:** `python -m pytest tests/unit -q` requires `pytest` and `sqlalchemy`; validates independent service-owned schema constraints and gateway routes. No database changes.
+2. **Real PostgreSQL concurrency test (opt in):** set `TEST_DATABASE_URL` to a **disposable PostgreSQL test database**, then `python -m pytest tests/integration -q`. Tests use separate disposable tables, verify two concurrent debits cannot overdraw and two tuition settlements cannot both win. This validates locking strategy, **not** the end-to-end HTTP Saga.
+3. **Existing Saga/outbox smoke (with Docker):** `docker compose exec payment-service python -m app.tests.phase3_saga_smoke`. HTTP calls to other services are mocked; it writes and cleans up test transactions in payment_db.
+4. **Windows deployment smoke:** `test-workflow.bat` checks Compose services, health endpoints and DB state.
+5. **Manual E2E:** use a disposable demo account + SMTP sandbox mailbox to verify login -> tuition lookup -> OTP -> payment -> balance, paid status, history and email. Never run destructive demos against production.
 
-## Run on Windows
-
-1. Copy `test-workflow.bat` to the project root (same level as `docker-compose.yml`).
-2. Copy the `scripts` and `tests` folders into the project root. If `tests` already exists, merge the folders; do not delete existing tests.
-3. Start the stack first:
-
-   ```powershell
-   docker compose up -d --build
-   ```
-
-4. Run by double-clicking `test-workflow.bat`, or from PowerShell:
-
-   ```powershell
-   .\test-workflow.bat
-   ```
-
-   Or run directly:
-
-   ```powershell
-   .\scripts\test-workflow.ps1
-   ```
-
-## Optional switches
-
-- `.	est-workflow.bat -SkipSmokeTest` checks Docker, services, databases and Phase 3 tables, but skips the mocked Saga/Outbox test.
-- `.	est-workflow.bat -ShowLogs` runs all checks and prints recent Payment Service/Worker logs.
-
-## What is tested
-
-- Docker Compose configuration and container availability.
-- Auth, Tuition and Payment HTTP health endpoints.
-- Notification Service health from inside its container.
-- Payment Worker container availability.
-- Presence of `auth_db`, `tuition_db`, and `payment_db`.
-- Presence of `transactions` and `outbox_events` in `payment_db`.
-- Existing `app.tests.phase3_saga_smoke` test: successful Saga + durable outbox event, failed outbox delivery retry, and compensation on a definitive tuition conflict. Auth/Tuition HTTP calls are mocked for this test; it does not perform a real debit or tuition payment.
-
-## Real business workflow (manual)
-
-The script cannot safely enter an OTP received in a private mailbox or operate the browser UI. After automated checks pass, manually test:
-
-1. Open `http://localhost:5173`.
-2. Sign in with a demo account that exists in the fresh database.
-3. Look up an unpaid student record.
-4. Start payment and receive OTP at the configured email.
-5. Enter OTP and confirm payment.
-6. Verify transaction status, wallet balance, tuition status, transaction history, and receipt email.
-
-Do not use a real account or real balance for failure-injection tests. Use disposable demo data.
+**Important:** do not claim automated coverage proves actual concurrency across microservices. Full concurrency / failure-injection E2E tests and automated mail delivery checks are additional work before a genuine 10/10-level verification.

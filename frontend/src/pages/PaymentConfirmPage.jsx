@@ -7,9 +7,7 @@ import StepIndicator from '../components/StepIndicator'
 import paymentService from '../services/paymentService'
 
 // Hàm format tiền tệ
-const formatVnd = (amount) => {
-  return new Intl.NumberFormat('vi-VN').format(amount) + ' đ'
-}
+import { formatVnd } from '../utils/format'
 
 export default function PaymentConfirmPage() {
   const { user, token, accessToken, refreshUser } = useAuth()

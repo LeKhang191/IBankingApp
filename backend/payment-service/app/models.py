@@ -11,6 +11,7 @@ from sqlalchemy import (
     JSON,
     UniqueConstraint,
     Index,
+    CheckConstraint,
 )
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -19,6 +20,10 @@ Base = declarative_base()
 
 class PaymentTransaction(Base):
     __tablename__ = "transactions"
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="ck_payments_positive_amount"),
+        CheckConstraint("otp_attempts >= 0 AND otp_resend_count >= 0", name="ck_payments_otp_counters"),
+    )
 
     id = Column(String(64), primary_key=True, index=True)
     mssv = Column(String(20), nullable=False, index=True)

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useAuth } from '../context/AuthContext'
 import AppLayout from '../components/AppLayout'
-import { formatVnd } from '../services/mockApi'
+import { formatVnd } from '../utils/format'
 
 export default function ProfilePage() {
   const { user } = useAuth()

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Numeric, Integer, DateTime, UniqueConstraint
+from sqlalchemy import Column, String, Numeric, Integer, DateTime, UniqueConstraint, CheckConstraint
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -6,6 +6,7 @@ from app.database import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (CheckConstraint("balance >= 0", name="ck_users_nonnegative_balance"),)
 
     id = Column(String, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
@@ -22,6 +23,8 @@ class WalletOperation(Base):
     __tablename__ = "wallet_operations"
     __table_args__ = (
         UniqueConstraint("transaction_id", "operation", name="uq_wallet_txn_operation"),
+        CheckConstraint("amount > 0", name="ck_wallet_positive_amount"),
+        CheckConstraint("operation IN ('DEBIT', 'REFUND')", name="ck_wallet_operation_type"),
     )
 
     id = Column(Integer, primary_key=True)

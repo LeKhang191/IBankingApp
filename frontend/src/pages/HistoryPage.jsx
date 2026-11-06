@@ -2,9 +2,7 @@ import React, { useEffect, useState } from 'react'
 import AppLayout from '../components/AppLayout'
 import tuitionService from '../services/tuitionService'
 
-const formatVnd = (amount) => {
-  return new Intl.NumberFormat('vi-VN').format(amount) + ' đ'
-}
+import { formatVnd } from '../utils/format'
 
 export default function HistoryPage() {
   const [transactions, setTransactions] = useState([])

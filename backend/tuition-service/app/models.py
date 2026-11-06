@@ -1,9 +1,10 @@
-from sqlalchemy import Column, Integer, String, Numeric, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Numeric, Boolean, DateTime, CheckConstraint
 from app.database import Base
 
 
 class Tuition(Base):
     __tablename__ = "tuitions"
+    __table_args__ = (CheckConstraint("tuition_fee > 0", name="ck_tuitions_positive_fee"),)
 
     id = Column(Integer, primary_key=True, index=True)
     student_code = Column(String, unique=True, index=True, nullable=False)
