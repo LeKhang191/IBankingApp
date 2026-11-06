@@ -72,7 +72,7 @@ def records():
     # Always unique rows; never mutate or delete seeded demo records.
     uid1, uid2 = f"e2e-u1-{tag}", f"e2e-u2-{tag}"
     student = "8" + str(int(tag[:8], 16) % 10**9).zfill(9)
-    email1, email2 = f"{uid1}@example.test", f"{uid2}@example.test"
+    email1, email2 = f"{uid1}@example.com", f"{uid2}@example.com"    
     username1, username2 = f"e2e1_{tag}", f"e2e2_{tag}"
     auth = connect("AUTH"); tuition = connect("TUITION"); payment = connect("PAYMENT")
     created_ids = []

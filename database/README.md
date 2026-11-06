@@ -29,3 +29,18 @@ For already running Phase 3 installations, skip `001_saga_outbox.sql` if already
 
 ## Active payment duplicate protection
 `payment/003_active_payment_unique.sql` creates a **partial unique index** on `(user_id, mssv)` for active transactions to eliminate the concurrent init race. Check/resolve existing active duplicates first (see `../APPLY_PHASE3.md`); SQLAlchemy `create_all()` does not retrofit indexes into existing tables.
+
+
+## Payment DB initialization (2026-11 fix)
+
+The one-shot `payment-db-init` Compose service is the **only** process that creates
+Payment tables and verifies SQL migrations. Both `payment-service` and
+`payment-worker` wait for this service to exit successfully. This prevents
+`pg_type_typname_nsp_index` / `transactions` collisions when two processes start
+at once. A PostgreSQL advisory lock serializes accidental duplicate init runs.
+
+For existing databases, **back up the data first**. The initializer runs the
+existing SQL migrations against your current `payment_db`. The unique active
+payment index may reject preexisting duplicate active records; resolve those
+before starting. Do not erase a persistent volume to work around a migration
+error. Check `docker compose logs payment-db-init` for details.

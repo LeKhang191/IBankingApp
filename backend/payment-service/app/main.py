@@ -28,7 +28,6 @@ logger = logging.getLogger("ibanking.payment")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://payment_user:change_me@postgres:5432/payment_db")
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_size=5, max_overflow=10)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base.metadata.create_all(bind=engine)
 
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth-service:8001")
 TUITION_SERVICE_URL = os.getenv("TUITION_SERVICE_URL", "http://tuition-service:8001")

@@ -88,6 +88,21 @@ services:
       retries: 15
     restart: unless-stopped
 
+  # Run schema creation/migrations once before either API or worker.
+  payment-db-init:
+    build:
+      context: ./backend/payment-service
+    command: ["python", "-m", "app.init_db"]
+    environment:
+      DATABASE_URL: postgresql://${PAYMENT_DB_USER:-payment_user}:${PAYMENT_DB_PASSWORD:?Set PAYMENT_DB_PASSWORD in .env}@postgres:5432/${PAYMENT_DB_NAME:-payment_db}
+      PAYMENT_MIGRATIONS_DIR: /database/migrations/payment
+    volumes:
+      - ./database/migrations/payment:/database/migrations/payment:ro
+    depends_on:
+      db-bootstrap:
+        condition: service_completed_successfully
+    restart: "no"
+
   payment-service:
     build:
       context: ./backend/payment-service
@@ -111,6 +126,8 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:5173}
     depends_on:
+      payment-db-init:
+        condition: service_completed_successfully
       db-bootstrap:
         condition: service_completed_successfully
       auth-service:
@@ -148,6 +165,8 @@ services:
       OUTBOX_LEASE_SECONDS: ${OUTBOX_LEASE_SECONDS:-60}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
+      payment-db-init:
+        condition: service_completed_successfully
       db-bootstrap:
         condition: service_completed_successfully
       auth-service:
