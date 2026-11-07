@@ -3,6 +3,18 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
+      // Nearly-square interface: applies consistently to cards, buttons,
+      // input fields, alerts and panels across the frontend.
+      // Keep rounded-full for intentionally circular status indicators.
+      borderRadius: {
+        DEFAULT: '3px',
+        sm: '2px',
+        md: '3px',
+        lg: '3px',
+        xl: '4px',
+        '2xl': '4px',
+        '3xl': '4px',
+      },
       colors: {
         ink: '#101828',
         canvas: '#F7F8FA',
