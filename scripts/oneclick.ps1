@@ -1,4 +1,4 @@
-# Internal helper for the three double-click launchers in the repository root.
+﻿# Internal helper for the three double-click launchers in the repository root.
 # Windows PowerShell 5.1 compatible. No Python, Node, npm or pytest required on host.
 [CmdletBinding()]
 param([ValidateSet('app','automation','e2e')][string]$Mode)
@@ -151,6 +151,40 @@ function Ensure-GmailSmtp {
     $password = $null
 }
 
+# Read a short, local-only diagnostic without printing or changing credentials.
+function Get-MainBootstrapLogs {
+    $prior = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $lines = & docker compose -f docker-compose.yml logs --no-color --tail=100 db-bootstrap 2>&1
+        return ($lines | Out-String)
+    } finally {
+        $ErrorActionPreference = $prior
+    }
+}
+function Start-MainStack {
+    $compose = @('compose','-f','docker-compose.yml')
+    Invoke-DockerChecked -Arguments ($compose + @('config','--quiet'))
+    try {
+        Invoke-DockerChecked -Arguments ($compose + @('up','-d','--build'))
+    } catch {
+        $originalError = $_
+        $bootstrapLogs = Get-MainBootstrapLogs
+        # A database initialized using an older .env retains the old password in pgdata.
+        # Recover only this positively identified problem, and only for the demo app stack.
+        if ($bootstrapLogs -notmatch 'password authentication failed for user ["'']postgres["'']') {
+            throw $originalError
+        }
+        Step 'Detected stale PostgreSQL password in the MAIN demo database volume.'
+        Write-Host '[DEMO RESET] Removing main app Compose volumes to regenerate demo databases.' -ForegroundColor Yellow
+        Write-Host 'Only do this with disposable demo data; all main app Compose volumes will be deleted.' -ForegroundColor Yellow
+        Write-Host 'The .env file and the isolated E2E Compose project are not changed.' -ForegroundColor Yellow
+        Invoke-DockerChecked -Arguments ($compose + @('down','-v','--remove-orphans'))
+        Step 'Rebuilding demo database from the existing, unchanged .env...'
+        Invoke-DockerChecked -Arguments ($compose + @('up','-d','--build'))
+    }
+}
+
 function Wait-Http([string]$url, [int]$attempts=40) {
     for ($i=0; $i -lt $attempts; $i++) {
         try {
@@ -180,9 +214,7 @@ try {
         $env:VITE_TUITION_API_URL='http://localhost:8080'
         $env:VITE_PAYMENT_API_URL='http://localhost:8080'
         $env:CORS_ALLOW_ORIGINS='http://localhost:5173'
-        $compose = @('compose','-f','docker-compose.yml')
-        Invoke-DockerChecked -Arguments ($compose + @('config','--quiet'))
-        Invoke-DockerChecked -Arguments ($compose + @('up','-d','--build'))
+        Start-MainStack
         Step 'Checking API Gateway and frontend...'
         Wait-Http 'http://localhost:8080/health' 50
         Wait-Http 'http://localhost:5173' 50
@@ -211,6 +243,6 @@ try {
     exit 0
 } catch {
     Write-Host "`n[FAILED] $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host 'See Docker logs for details. No volumes were deleted.' -ForegroundColor Yellow
+    Write-Host 'Check the message above and run: docker compose -f docker-compose.yml logs --tail=100 db-bootstrap postgres' -ForegroundColor Yellow
     exit 1
 }

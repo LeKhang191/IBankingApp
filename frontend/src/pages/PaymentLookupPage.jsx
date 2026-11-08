@@ -59,7 +59,7 @@ async function handleSearch(e) {
             <input
               value={mssv}
               onChange={(e) => setMssv(e.target.value)}
-              placeholder="Nhập MSSV, ví dụ: 52100001"
+              placeholder="Nhập MSSV, ví dụ: 52000002"
               className="flex-1 rounded-lg border border-border px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
             <button
@@ -92,7 +92,7 @@ async function handleSearch(e) {
         </section>
 
         <p className="mt-4 text-center text-xs text-ink/40">
-          Demo MSSV: 52100001, 52100002, 52100003 (chưa đóng) — 52100004 (đã đóng)
+          Demo: 52000001 (sv001) • 52000002 (sv002, đóng hộ) • 52000003 (sv003, không đủ tiền)
         </p>
       </div>
     </AppLayout>

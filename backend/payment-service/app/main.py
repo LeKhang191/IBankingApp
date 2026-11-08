@@ -77,12 +77,12 @@ class VerifyOtpRequest(BaseModel):
     transaction_id: str = Field(min_length=8, max_length=64)
     otp: str = Field(min_length=6, max_length=6, pattern=r"^[0-9]{6}$")
 
-
+# OTP
 def otp_digest(otp: str) -> str:
     if not OTP_PEPPER:
         raise HTTPException(status_code=503, detail="OTP_PEPPER chưa được cấu hình.")
     return hmac.new(OTP_PEPPER.encode("utf-8"), otp.encode("ascii"), hashlib.sha256).hexdigest()
-
+#.
 
 def internal_headers() -> dict:
     if not INTERNAL_SERVICE_TOKEN:
@@ -189,7 +189,7 @@ def _update_transaction(transaction_id: str, **values):
         db.refresh(txn)
         return transaction_result(txn)
 
-
+# service timeout hoac tra 500, khong rollback ngay lap tuc
 def _schedule_saga_retry(transaction_id: str, message: str, status: str = "processing"):
     logger.warning("Saga retry scheduled transaction_id=%s status=%s reason=%s", transaction_id, status, message)
     return _update_transaction(
@@ -199,7 +199,7 @@ def _schedule_saga_retry(transaction_id: str, message: str, status: str = "proce
         next_retry_at=datetime.utcnow() + timedelta(seconds=SAGA_RETRY_SECONDS),
         saga_lease_until=None,
     )
-
+#.
 
 def _mark_saga_failed(transaction_id: str, message: str):
     logger.warning("Saga failed transaction_id=%s reason=%s", transaction_id, message)
@@ -279,7 +279,7 @@ def _mark_saga_success(transaction_id: str):
         db.refresh(txn)
         return transaction_result(txn)
 
-
+# tru tien nhung gach no gap loi nghiep vu, hoan tien
 async def _compensate_debit(snapshot: dict):
     transaction_id = snapshot["id"]
     if not snapshot["debit_applied"]:
@@ -310,9 +310,9 @@ async def _compensate_debit(snapshot: dict):
         f"Refund chưa thành công (HTTP {response.status_code}): {response.text[:1000]}",
         status="compensation_required",
     )
-    return _get_transaction_snapshot(transaction_id)
+    return _get_transaction_snapshot(transaction_id) #.
 
-
+# Saga
 async def process_saga(transaction_id: str):
     """Resume a payment Saga. All remote write APIs must stay idempotent by transaction_id."""
     snapshot = _claim_saga(transaction_id)
@@ -331,7 +331,7 @@ async def process_saga(transaction_id: str):
                         "user_id": snapshot["user_id"],
                         "amount": snapshot["amount"],
                         "transaction_id": transaction_id,
-                    },
+                    }, 
                     headers=internal_headers(),
                 )
         except httpx.RequestError as exc:
@@ -359,7 +359,7 @@ async def process_saga(transaction_id: str):
         except httpx.RequestError as exc:
             _schedule_saga_retry(transaction_id, f"Tuition settlement timeout/network error: {exc}")
             return _get_transaction_snapshot(transaction_id)
-
+#.
         if tuition_response.status_code == 200:
             _update_transaction(transaction_id, tuition_settled=True, last_error=None)
             snapshot["tuition_settled"] = True
@@ -380,7 +380,7 @@ async def process_saga(transaction_id: str):
             return None
 
     return _mark_saga_success(transaction_id)
-
+#.
 
 def list_recoverable_sagas(limit: int = 50):
     now = datetime.utcnow()
@@ -458,7 +458,7 @@ async def process_outbox_once():
     logger.info("Outbox event delivered event_id=%s type=%s", event_id, event_type)
     return True
 
-
+# kiem tra so du va hoc phi 
 @router.post("/init", status_code=201)
 async def init_payment(
     payload: InitPaymentRequest,
@@ -488,7 +488,7 @@ async def init_payment(
         raise HTTPException(status_code=422, detail="Số tiền học phí không hợp lệ.")
     if balance < amount:
         raise HTTPException(status_code=400, detail="Số dư tài khoản không đủ để đóng học phí.")
-
+#.
     existing = (
         db.query(PaymentTransaction)
         .filter(
@@ -501,7 +501,7 @@ async def init_payment(
     )
     if existing:
         raise HTTPException(status_code=409, detail=f"Bạn đang có giao dịch chờ xử lý: {existing.id}.")
-
+# OTP
     otp = f"{secrets.randbelow(900000) + 100000:06d}"
     now = datetime.utcnow()
     txn = PaymentTransaction(
@@ -521,7 +521,7 @@ async def init_payment(
         debit_applied=False,
         tuition_settled=False,
         saga_attempts=0,
-    )
+    ) #.
     db.add(txn)
     try:
         db.commit()
@@ -602,7 +602,7 @@ async def verify_otp(
     payload: VerifyOtpRequest,
     authorization: str = Header(...),
     db: Session = Depends(get_db),
-):
+): #OTP
     user_data = await get_user_data(authorization)
     now = datetime.utcnow()
     txn = (
@@ -659,7 +659,7 @@ async def verify_otp(
     if result and result.get("status") == "compensation_required":
         raise HTTPException(status_code=503, detail="Đang hoàn tiền bù trừ. Hệ thống sẽ tự động tiếp tục đối soát.")
     raise HTTPException(status_code=503, detail="Giao dịch đang được xử lý hoặc chờ retry. Vui lòng kiểm tra lại sau.")
-
+#.
 
 @router.post("/retry/{transaction_id}")
 async def retry_payment_saga(

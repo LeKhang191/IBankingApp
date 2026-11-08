@@ -8,10 +8,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ibanking
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      # TCP check: do not report healthy while the init-only Unix socket is up.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 3s
       timeout: 3s
-      retries: 15
+      retries: 20
+      start_period: 10s
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./database:/database:ro

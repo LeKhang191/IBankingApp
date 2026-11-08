@@ -82,7 +82,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-4 text-center text-xs text-ink/40">
-          Demo: sv001 / 123456 &nbsp;•&nbsp; sv002 / 123456
+          Demo: sv001 (30 triệu) &nbsp;•&nbsp; sv002 (đóng hộ) &nbsp;•&nbsp; sv003 (không đủ tiền) — mật khẩu: 123456
         </p>
       </div>
     </div>
