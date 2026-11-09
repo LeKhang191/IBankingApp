@@ -550,7 +550,7 @@ async def init_payment(
         "message": "Mã OTP đã được gửi đến email của bạn.",
     }
 
-
+# OTP
 @router.post("/resend-otp/{transaction_id}")
 async def resend_otp(
     transaction_id: str,
