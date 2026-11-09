@@ -32,7 +32,6 @@ async function handleSearch(e) {
       setResult(tuition)
     }
   } catch (err) {
-    console.error("LỖI THỰC SỰ ĐÂY NÈ:", err); // <--- BẠN THÊM DÒNG NÀY VÀO
     setError(err.response?.data?.detail || "Không tìm thấy thông tin học phí.")
   } finally {
     setIsSearching(false)
